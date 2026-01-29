@@ -1,0 +1,117 @@
+import React from 'react';
+import usePluginStore from './store/usePluginStore';
+import { apiService } from './services/api';
+import PluginSettings from './components/PluginSettings';
+import BlockPalette from './components/BlockPalette';
+import Canvas from './components/Canvas';
+import BlockEditor from './components/BlockEditor';
+import './App.css';
+
+export default function App() {
+  const name = usePluginStore((s) => s.name);
+  const version = usePluginStore((s) => s.version);
+  const mainPackage = usePluginStore((s) => s.mainPackage);
+  const description = usePluginStore((s) => s.description);
+  const author = usePluginStore((s) => s.author);
+  const blocks = usePluginStore((s) => s.blocks);
+  const selectedBlockId = usePluginStore((s) => s.selectedBlockId);
+  const loading = usePluginStore((s) => s.loading);
+  const error = usePluginStore((s) => s.error);
+  const successMessage = usePluginStore((s) => s.successMessage);
+  const setLoading = usePluginStore((s) => s.setLoading);
+  const setError = usePluginStore((s) => s.setError);
+  const setSuccessMessage = usePluginStore((s) => s.setSuccessMessage);
+
+  const handleGenerate = async () => {
+    setError(null);
+    setSuccessMessage(null);
+
+    if (!name.trim()) {
+      setError('Please enter a plugin name.');
+      return;
+    }
+    const eventBlocks = blocks.filter((b) => b.type === 'event');
+    if (eventBlocks.length === 0) {
+      setError('Please add at least one event block to the canvas.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const blocksById = Object.fromEntries(blocks.map((b) => [b.id, b]));
+
+      const toPayloadBlock = (b) => ({
+        id: b.id,
+        type: b.type,
+        name: b.name,
+        properties: b.properties,
+        children: b.children || [],
+        custom_code: b.customCode || ''
+      });
+
+      // Send all blocks (events + their children) in a flat list
+      const payloadBlocks = [];
+      for (const event of eventBlocks) {
+        payloadBlocks.push(toPayloadBlock(event));
+        for (const childId of event.children || []) {
+          const child = blocksById[childId];
+          if (child) {
+            payloadBlocks.push(toPayloadBlock(child));
+          }
+        }
+      }
+
+      const payload = {
+        name: name.trim(),
+        version,
+        main_package: mainPackage,
+        description,
+        author,
+        blocks: payloadBlocks
+      };
+
+      const result = await apiService.generatePlugin(payload);
+      if (result.download_id) {
+        apiService.downloadPlugin(result.download_id);
+      }
+      setSuccessMessage('Plugin generated successfully!');
+    } catch (err) {
+      const msg = err.response?.data?.detail || err.message || 'Failed to generate plugin.';
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="app">
+      <header className="header">Minecraft Plugin Builder</header>
+      <div className="content">
+        <aside className="sidebar">
+          <PluginSettings />
+          <BlockPalette />
+        </aside>
+        <main className="main-area">
+          <Canvas />
+        </main>
+        {selectedBlockId && (
+          <aside className="editor-panel">
+            <BlockEditor />
+          </aside>
+        )}
+      </div>
+      <footer className="footer">
+        <button
+          className="generate-btn"
+          onClick={handleGenerate}
+          disabled={loading}
+        >
+          {loading ? 'Generating...' : 'Generate Plugin'}
+        </button>
+        {loading && <div className="spinner" />}
+        {error && <div className="error-message">{error}</div>}
+        {successMessage && <div className="success-message">{successMessage}</div>}
+      </footer>
+    </div>
+  );
+}
