@@ -6,10 +6,31 @@ import SoundSelect from './SoundSelect';
 
 /** Context hints per event type shown above the code editor. */
 const EVENT_CONTEXT = {
-  PlayerJoinEvent: 'player (Player), event (PlayerJoinEvent)',
-  PlayerQuitEvent: 'player (Player), event (PlayerQuitEvent)',
-  BlockBreakEvent: 'player (Player), event (BlockBreakEvent) — event.getBlock()',
-  BlockPlaceEvent: 'player (Player), event (BlockPlaceEvent) — event.getBlock()',
+  // Player Events
+  PlayerJoinEvent: 'player (Player), event (PlayerJoinEvent) — event.getJoinMessage()',
+  PlayerQuitEvent: 'player (Player), event (PlayerQuitEvent) — event.getQuitMessage()',
+  PlayerMoveEvent: 'player (Player), event (PlayerMoveEvent) — event.getFrom(), event.getTo()',
+  AsyncPlayerChatEvent: 'player (Player), event (AsyncPlayerChatEvent) — event.getMessage(), event.setMessage()',
+  PlayerDeathEvent: 'player (Player), event (PlayerDeathEvent) — event.getDeathMessage(), event.getDrops()',
+  PlayerRespawnEvent: 'player (Player), event (PlayerRespawnEvent) — event.getRespawnLocation()',
+  PlayerInteractEvent: 'player (Player), event (PlayerInteractEvent) — event.getAction(), event.getClickedBlock()',
+  PlayerInteractEntityEvent: 'player (Player), event (PlayerInteractEntityEvent) — event.getRightClicked()',
+  PlayerToggleSneakEvent: 'player (Player), event (PlayerToggleSneakEvent) — event.isSneaking()',
+  PlayerToggleSprintEvent: 'player (Player), event (PlayerToggleSprintEvent) — event.isSprinting()',
+  PlayerDropItemEvent: 'player (Player), event (PlayerDropItemEvent) — event.getItemDrop()',
+  EntityPickupItemEvent: 'player (Player), event (EntityPickupItemEvent) — event.getItem()',
+  // Block Events
+  BlockBreakEvent: 'player (Player), event (BlockBreakEvent) — event.getBlock(), event.setDropItems()',
+  BlockPlaceEvent: 'player (Player), event (BlockPlaceEvent) — event.getBlock(), event.getBlockAgainst()',
+  BlockBurnEvent: 'event (BlockBurnEvent) — event.getBlock(), event.getIgnitingBlock()',
+  BlockIgniteEvent: 'player (Player|null), event (BlockIgniteEvent) — event.getBlock(), event.getCause()',
+  // Entity Events
+  EntityDamageEvent: 'player (Player|null), event (EntityDamageEvent) — event.getDamage(), event.getCause()',
+  EntityDamageByEntityEvent: 'player (Player|null), event (EntityDamageByEntityEvent) — event.getDamager(), event.getDamage()',
+  EntityDeathEvent: 'entity (LivingEntity), event (EntityDeathEvent) — event.getDrops(), event.getDroppedExp()',
+  CreatureSpawnEvent: 'entity (LivingEntity), event (CreatureSpawnEvent) — event.getSpawnReason(), event.getEntityType()',
+  // World Events
+  WeatherChangeEvent: 'world (World), event (WeatherChangeEvent) — event.toWeatherState()',
 };
 
 /** Placeholder hints for common property names. */
@@ -30,6 +51,15 @@ const PROPERTY_PLACEHOLDERS = {
   fadeIn: '10',
   stay: '70',
   fadeOut: '20',
+  gameMode: 'SURVIVAL, CREATIVE, ADVENTURE, SPECTATOR',
+  effectType: 'SPEED, SLOW, STRENGTH, REGENERATION, INVISIBILITY...',
+  duration: '200 (ticks, 20 = 1 second)',
+  amplifier: '1 (effect level)',
+  particle: 'HEART, FLAME, SMOKE, EXPLOSION...',
+  count: '10',
+  level: '10',
+  command: 'Command without / (use %player% for player name)',
+  reason: 'Kick reason message',
 };
 
 export default function BlockEditor() {

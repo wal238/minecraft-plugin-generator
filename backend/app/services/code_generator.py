@@ -8,18 +8,70 @@ from app.utils.validators import sanitize_java_string
 
 # Mapping of event names to their import paths
 EVENT_IMPORTS: Dict[str, str] = {
+    # Player Events
     "PlayerJoinEvent": "org.bukkit.event.player.PlayerJoinEvent",
     "PlayerQuitEvent": "org.bukkit.event.player.PlayerQuitEvent",
+    "PlayerMoveEvent": "org.bukkit.event.player.PlayerMoveEvent",
+    "AsyncPlayerChatEvent": "org.bukkit.event.player.AsyncPlayerChatEvent",
+    "PlayerDeathEvent": "org.bukkit.event.entity.PlayerDeathEvent",
+    "PlayerRespawnEvent": "org.bukkit.event.player.PlayerRespawnEvent",
+    "PlayerInteractEvent": "org.bukkit.event.player.PlayerInteractEvent",
+    "PlayerInteractEntityEvent": "org.bukkit.event.player.PlayerInteractEntityEvent",
+    "PlayerToggleSneakEvent": "org.bukkit.event.player.PlayerToggleSneakEvent",
+    "PlayerToggleSprintEvent": "org.bukkit.event.player.PlayerToggleSprintEvent",
+    "PlayerDropItemEvent": "org.bukkit.event.player.PlayerDropItemEvent",
+    "EntityPickupItemEvent": "org.bukkit.event.entity.EntityPickupItemEvent",
+    # Block Events
     "BlockBreakEvent": "org.bukkit.event.block.BlockBreakEvent",
     "BlockPlaceEvent": "org.bukkit.event.block.BlockPlaceEvent",
+    "BlockBurnEvent": "org.bukkit.event.block.BlockBurnEvent",
+    "BlockIgniteEvent": "org.bukkit.event.block.BlockIgniteEvent",
+    # Entity Events
+    "EntityDamageEvent": "org.bukkit.event.entity.EntityDamageEvent",
+    "EntityDamageByEntityEvent": "org.bukkit.event.entity.EntityDamageByEntityEvent",
+    "EntityDeathEvent": "org.bukkit.event.entity.EntityDeathEvent",
+    "CreatureSpawnEvent": "org.bukkit.event.entity.CreatureSpawnEvent",
+    # World Events
+    "WeatherChangeEvent": "org.bukkit.event.weather.WeatherChangeEvent",
 }
 
 # Mapping of event names to the player accessor expression
 EVENT_PLAYER_ACCESSOR: Dict[str, str] = {
+    # Player events - direct player access
     "PlayerJoinEvent": "event.getPlayer()",
     "PlayerQuitEvent": "event.getPlayer()",
+    "PlayerMoveEvent": "event.getPlayer()",
+    "AsyncPlayerChatEvent": "event.getPlayer()",
+    "PlayerDeathEvent": "event.getEntity()",
+    "PlayerRespawnEvent": "event.getPlayer()",
+    "PlayerInteractEvent": "event.getPlayer()",
+    "PlayerInteractEntityEvent": "event.getPlayer()",
+    "PlayerToggleSneakEvent": "event.getPlayer()",
+    "PlayerToggleSprintEvent": "event.getPlayer()",
+    "PlayerDropItemEvent": "event.getPlayer()",
+    "EntityPickupItemEvent": "(Player) event.getEntity()",
+    # Block events
     "BlockBreakEvent": "event.getPlayer()",
     "BlockPlaceEvent": "event.getPlayer()",
+    "BlockBurnEvent": "null",  # No player involved
+    "BlockIgniteEvent": "event.getPlayer()",  # May be null
+    # Entity events - may or may not have player
+    "EntityDamageEvent": "(event.getEntity() instanceof Player ? (Player) event.getEntity() : null)",
+    "EntityDamageByEntityEvent": "(event.getEntity() instanceof Player ? (Player) event.getEntity() : null)",
+    "EntityDeathEvent": "(event.getEntity() instanceof Player ? (Player) event.getEntity() : null)",
+    "CreatureSpawnEvent": "null",  # No player involved
+    # World events
+    "WeatherChangeEvent": "null",  # No player involved
+}
+
+# Events that need special handling (no guaranteed player)
+EVENTS_WITHOUT_PLAYER: set = {
+    "BlockBurnEvent",
+    "EntityDamageEvent",
+    "EntityDamageByEntityEvent",
+    "EntityDeathEvent",
+    "CreatureSpawnEvent",
+    "WeatherChangeEvent",
 }
 
 
@@ -101,14 +153,18 @@ public class {class_name} extends JavaPlugin {{
         event_name = event_block.name
         event_import = EVENT_IMPORTS.get(event_name, f"org.bukkit.event.{event_name}")
         player_accessor = EVENT_PLAYER_ACCESSOR.get(event_name, "event.getPlayer()")
+        has_no_player = event_name in EVENTS_WITHOUT_PLAYER
 
         # Build imports
         imports = [
             "org.bukkit.event.Listener",
             "org.bukkit.event.EventHandler",
             event_import,
-            "org.bukkit.entity.Player",
         ]
+
+        # Only import Player if we actually have access to one
+        if not has_no_player or player_accessor != "null":
+            imports.append("org.bukkit.entity.Player")
 
         action_names = {b.name for b in child_blocks if b.type == BlockType.ACTION}
         has_custom = any(b.type in (BlockType.CUSTOM_ACTION, BlockType.CUSTOM_CONDITION) for b in child_blocks)
@@ -119,19 +175,39 @@ public class {class_name} extends JavaPlugin {{
             imports.append("org.bukkit.inventory.ItemStack")
         if "BroadcastMessage" in action_names or "ConsoleLog" in action_names or has_custom:
             imports.append("org.bukkit.Bukkit")
+        if "ExecuteCommand" in action_names or "ExecuteConsoleCommand" in action_names:
+            imports.append("org.bukkit.Bukkit")
         if "PlaySound" in action_names:
             imports.append("org.bukkit.Sound")
-        if "TeleportPlayer" in action_names:
+        if "TeleportPlayer" in action_names or "SetVelocity" in action_names:
             imports.append("org.bukkit.Location")
+        if "SetVelocity" in action_names:
+            imports.append("org.bukkit.util.Vector")
         if "DropItem" in action_names:
             imports.append("org.bukkit.inventory.ItemStack")
         if has_custom:
             imports.append("org.bukkit.ChatColor")
+        if "SetGameMode" in action_names:
+            imports.append("org.bukkit.GameMode")
+        if "AddPotionEffect" in action_names or "RemovePotionEffect" in action_names:
+            imports.append("org.bukkit.potion.PotionEffect")
+            imports.append("org.bukkit.potion.PotionEffectType")
+        if "SpawnParticle" in action_names:
+            imports.append("org.bukkit.Particle")
 
         import_lines = "\n".join(f"import {imp};" for imp in sorted(set(imports)))
 
         # Generate action code
-        action_code = self._generate_action_code(child_blocks)
+        action_code = self._generate_action_code(child_blocks, event_name)
+
+        # Generate player variable line (or null check for entity events)
+        if has_no_player:
+            if "instanceof Player" in player_accessor:
+                player_line = f"        Player player = {player_accessor};\n        if (player == null) return;\n"
+            else:
+                player_line = "        // No player available for this event type\n"
+        else:
+            player_line = f"        Player player = {player_accessor};\n"
 
         return f"""package {package}.listeners;
 
@@ -141,12 +217,11 @@ public class EventListener{index} implements Listener {{
 
     @EventHandler
     public void on{event_name}({event_name} event) {{
-        Player player = {player_accessor};
-{action_code}    }}
+{player_line}{action_code}    }}
 }}
 """
 
-    def _generate_action_code(self, blocks: List[Block]) -> str:
+    def _generate_action_code(self, blocks: List[Block], event_name: str = "") -> str:
         """Generate Java code for a list of action blocks."""
         lines: List[str] = []
         for block in blocks:
@@ -218,6 +293,102 @@ public class EventListener{index} implements Listener {{
                         f"        player.getWorld().dropItemNaturally("
                         f"player.getLocation(), new ItemStack(Material.{item_type}, {amount}));"
                     )
+                # New actions
+                elif block.name == "SetGameMode":
+                    game_mode = sanitize_java_string(props.get("gameMode", "SURVIVAL")).upper()
+                    lines.append(f"        player.setGameMode(GameMode.{game_mode});")
+                elif block.name == "AddPotionEffect":
+                    effect_type = sanitize_java_string(props.get("effectType", "SPEED")).upper()
+                    duration = props.get("duration", "200")
+                    amplifier = props.get("amplifier", "1")
+                    lines.append(
+                        f"        player.addPotionEffect(new PotionEffect("
+                        f"PotionEffectType.{effect_type}, {duration}, {amplifier}));"
+                    )
+                elif block.name == "RemovePotionEffect":
+                    effect_type = sanitize_java_string(props.get("effectType", "SPEED")).upper()
+                    lines.append(f"        player.removePotionEffect(PotionEffectType.{effect_type});")
+                elif block.name == "SetVelocity":
+                    x = props.get("x", "0")
+                    y = props.get("y", "1")
+                    z = props.get("z", "0")
+                    lines.append(f"        player.setVelocity(new Vector({x}, {y}, {z}));")
+                elif block.name == "SendActionBar":
+                    msg = sanitize_java_string(props.get("message", ""))
+                    if "%player%" in msg:
+                        msg = msg.replace("%player%", '" + player.getName() + "')
+                    lines.append(f'        player.sendActionBar("{msg}");')
+                elif block.name == "SpawnParticle":
+                    particle = sanitize_java_string(props.get("particle", "HEART")).upper()
+                    count = props.get("count", "10")
+                    lines.append(
+                        f"        player.getWorld().spawnParticle(Particle.{particle}, "
+                        f"player.getLocation(), {count});"
+                    )
+                elif block.name == "KillPlayer":
+                    lines.append("        player.setHealth(0);")
+                elif block.name == "DamagePlayer":
+                    amount = props.get("amount", "5.0")
+                    lines.append(f"        player.damage({amount});")
+                elif block.name == "ClearInventory":
+                    lines.append("        player.getInventory().clear();")
+                elif block.name == "SetExperienceLevel":
+                    level = props.get("level", "10")
+                    lines.append(f"        player.setLevel({level});")
+                elif block.name == "ExecuteCommand":
+                    command = sanitize_java_string(props.get("command", ""))
+                    if "%player%" in command:
+                        command = command.replace("%player%", '" + player.getName() + "')
+                    lines.append(f'        player.performCommand("{command}");')
+                elif block.name == "ExecuteConsoleCommand":
+                    command = sanitize_java_string(props.get("command", ""))
+                    if "%player%" in command:
+                        command = command.replace("%player%", '" + player.getName() + "')
+                    lines.append(
+                        f'        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "{command}");'
+                    )
+                elif block.name == "KickPlayer":
+                    reason = sanitize_java_string(props.get("reason", "You have been kicked!"))
+                    lines.append(f'        player.kickPlayer("{reason}");')
+                # World actions
+                elif block.name == "SetTime":
+                    time = props.get("time", "6000")
+                    lines.append(f"        player.getWorld().setTime({time});")
+                elif block.name == "SetWeather":
+                    storm = props.get("storm", "false").lower()
+                    duration = props.get("duration", "6000")
+                    lines.append(f"        player.getWorld().setStorm({storm});")
+                    lines.append(f"        player.getWorld().setWeatherDuration({duration});")
+                elif block.name == "StrikeLightning":
+                    damage = props.get("damage", "true").lower()
+                    if damage == "true":
+                        lines.append("        player.getWorld().strikeLightning(player.getLocation());")
+                    else:
+                        lines.append("        player.getWorld().strikeLightningEffect(player.getLocation());")
+                elif block.name == "CreateExplosion":
+                    power = props.get("power", "4.0")
+                    fire = props.get("fire", "false").lower()
+                    break_blocks = props.get("breakBlocks", "false").lower()
+                    lines.append(
+                        f"        player.getWorld().createExplosion("
+                        f"player.getLocation(), {power}f, {fire}, {break_blocks});"
+                    )
+                # Visibility actions
+                elif block.name == "SetGlowing":
+                    glowing = props.get("glowing", "true").lower()
+                    lines.append(f"        player.setGlowing({glowing});")
+                elif block.name == "SetInvisible":
+                    invisible = props.get("invisible", "true").lower()
+                    lines.append(f"        player.setInvisible({invisible});")
+                elif block.name == "AllowFlight":
+                    allow = props.get("allow", "true").lower()
+                    start_flying = props.get("startFlying", "false").lower()
+                    lines.append(f"        player.setAllowFlight({allow});")
+                    if start_flying == "true":
+                        lines.append(f"        player.setFlying(true);")
+                elif block.name == "SetOnFire":
+                    ticks = props.get("ticks", "100")
+                    lines.append(f"        player.setFireTicks({ticks});")
             elif block.type == BlockType.CUSTOM_CONDITION:
                 code = block.custom_code or "true"
                 lines.append(f"        if ({code}) {{")

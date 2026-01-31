@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import usePluginStore from './store/usePluginStore';
 import { apiService } from './services/api';
 import PluginSettings from './components/PluginSettings';
 import BlockPalette from './components/BlockPalette';
 import Canvas from './components/Canvas';
 import BlockEditor from './components/BlockEditor';
+import ResizablePanel from './components/ResizablePanel';
+import CodePreviewModal from './components/CodePreviewModal';
 import './App.css';
 
 export default function App() {
@@ -22,6 +24,70 @@ export default function App() {
   const setError = usePluginStore((s) => s.setError);
   const setSuccessMessage = usePluginStore((s) => s.setSuccessMessage);
 
+  const [previewFiles, setPreviewFiles] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  const buildPayload = () => {
+    const eventBlocks = blocks.filter((b) => b.type === 'event');
+    const blocksById = Object.fromEntries(blocks.map((b) => [b.id, b]));
+
+    const toPayloadBlock = (b) => ({
+      id: b.id,
+      type: b.type,
+      name: b.name,
+      properties: b.properties,
+      children: b.children || [],
+      custom_code: b.customCode || ''
+    });
+
+    const payloadBlocks = [];
+    for (const event of eventBlocks) {
+      payloadBlocks.push(toPayloadBlock(event));
+      for (const childId of event.children || []) {
+        const child = blocksById[childId];
+        if (child) {
+          payloadBlocks.push(toPayloadBlock(child));
+        }
+      }
+    }
+
+    return {
+      name: name.trim(),
+      version,
+      main_package: mainPackage,
+      description,
+      author,
+      blocks: payloadBlocks
+    };
+  };
+
+  const handlePreview = async () => {
+    setError(null);
+    setSuccessMessage(null);
+
+    if (!name.trim()) {
+      setError('Please enter a plugin name.');
+      return;
+    }
+    const eventBlocks = blocks.filter((b) => b.type === 'event');
+    if (eventBlocks.length === 0) {
+      setError('Please add at least one event block to the canvas.');
+      return;
+    }
+
+    setPreviewLoading(true);
+    try {
+      const payload = buildPayload();
+      const result = await apiService.previewCode(payload);
+      setPreviewFiles(result.files);
+    } catch (err) {
+      const msg = err.response?.data?.detail || err.message || 'Failed to preview code.';
+      setError(msg);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
   const handleGenerate = async () => {
     setError(null);
     setSuccessMessage(null);
@@ -38,38 +104,7 @@ export default function App() {
 
     setLoading(true);
     try {
-      const blocksById = Object.fromEntries(blocks.map((b) => [b.id, b]));
-
-      const toPayloadBlock = (b) => ({
-        id: b.id,
-        type: b.type,
-        name: b.name,
-        properties: b.properties,
-        children: b.children || [],
-        custom_code: b.customCode || ''
-      });
-
-      // Send all blocks (events + their children) in a flat list
-      const payloadBlocks = [];
-      for (const event of eventBlocks) {
-        payloadBlocks.push(toPayloadBlock(event));
-        for (const childId of event.children || []) {
-          const child = blocksById[childId];
-          if (child) {
-            payloadBlocks.push(toPayloadBlock(child));
-          }
-        }
-      }
-
-      const payload = {
-        name: name.trim(),
-        version,
-        main_package: mainPackage,
-        description,
-        author,
-        blocks: payloadBlocks
-      };
-
+      const payload = buildPayload();
       const result = await apiService.generatePlugin(payload);
       if (result.download_id) {
         apiService.downloadPlugin(result.download_id);
@@ -95,23 +130,37 @@ export default function App() {
           <Canvas />
         </main>
         {selectedBlockId && (
-          <aside className="editor-panel">
+          <ResizablePanel minWidth={300} maxWidth={800} defaultWidth={380}>
             <BlockEditor />
-          </aside>
+          </ResizablePanel>
         )}
       </div>
       <footer className="footer">
         <button
+          className="preview-btn"
+          onClick={handlePreview}
+          disabled={loading || previewLoading}
+        >
+          {previewLoading ? 'Loading...' : 'Preview Code'}
+        </button>
+        <button
           className="generate-btn"
           onClick={handleGenerate}
-          disabled={loading}
+          disabled={loading || previewLoading}
         >
           {loading ? 'Generating...' : 'Generate Plugin'}
         </button>
-        {loading && <div className="spinner" />}
+        {(loading || previewLoading) && <div className="spinner" />}
         {error && <div className="error-message">{error}</div>}
         {successMessage && <div className="success-message">{successMessage}</div>}
       </footer>
+
+      {previewFiles && (
+        <CodePreviewModal
+          files={previewFiles}
+          onClose={() => setPreviewFiles(null)}
+        />
+      )}
     </div>
   );
 }

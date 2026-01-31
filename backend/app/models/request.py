@@ -25,3 +25,9 @@ class HealthResponse(BaseModel):
     """Response for health check."""
     status: str
     message: str
+
+
+class PreviewResponse(BaseModel):
+    """Response for code preview."""
+    status: str
+    files: Dict[str, str]  # filename -> content

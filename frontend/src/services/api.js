@@ -15,6 +15,11 @@ export const apiService = {
     return response.data;
   },
 
+  async previewCode(config) {
+    const response = await axiosInstance.post('/preview-code', config);
+    return response.data;
+  },
+
   async getBlocks() {
     const response = await axiosInstance.get('/blocks');
     return response.data;
