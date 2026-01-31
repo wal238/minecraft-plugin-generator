@@ -1,66 +1,125 @@
-import React from 'react';
 import usePluginStore from '../store/usePluginStore';
 import CodeEditor from './CodeEditor';
-import ItemSelect from './ItemSelect';
-import SoundSelect from './SoundSelect';
+import { GroupedSelect, Slider, SelectInput, NumberInput } from './form';
+import { ACTION_FIELDS } from '../data/dropdownOptions';
 
 /** Context hints per event type shown above the code editor. */
 const EVENT_CONTEXT = {
   // Player Events
-  PlayerJoinEvent: 'player (Player), event (PlayerJoinEvent) — event.getJoinMessage()',
-  PlayerQuitEvent: 'player (Player), event (PlayerQuitEvent) — event.getQuitMessage()',
-  PlayerMoveEvent: 'player (Player), event (PlayerMoveEvent) — event.getFrom(), event.getTo()',
-  AsyncPlayerChatEvent: 'player (Player), event (AsyncPlayerChatEvent) — event.getMessage(), event.setMessage()',
-  PlayerDeathEvent: 'player (Player), event (PlayerDeathEvent) — event.getDeathMessage(), event.getDrops()',
-  PlayerRespawnEvent: 'player (Player), event (PlayerRespawnEvent) — event.getRespawnLocation()',
-  PlayerInteractEvent: 'player (Player), event (PlayerInteractEvent) — event.getAction(), event.getClickedBlock()',
-  PlayerInteractEntityEvent: 'player (Player), event (PlayerInteractEntityEvent) — event.getRightClicked()',
-  PlayerToggleSneakEvent: 'player (Player), event (PlayerToggleSneakEvent) — event.isSneaking()',
-  PlayerToggleSprintEvent: 'player (Player), event (PlayerToggleSprintEvent) — event.isSprinting()',
-  PlayerDropItemEvent: 'player (Player), event (PlayerDropItemEvent) — event.getItemDrop()',
-  EntityPickupItemEvent: 'player (Player), event (EntityPickupItemEvent) — event.getItem()',
+  PlayerJoinEvent: 'player (Player), event (PlayerJoinEvent) - event.getJoinMessage()',
+  PlayerQuitEvent: 'player (Player), event (PlayerQuitEvent) - event.getQuitMessage()',
+  PlayerMoveEvent: 'player (Player), event (PlayerMoveEvent) - event.getFrom(), event.getTo()',
+  AsyncPlayerChatEvent: 'player (Player), event (AsyncPlayerChatEvent) - event.getMessage(), event.setMessage()',
+  PlayerDeathEvent: 'player (Player), event (PlayerDeathEvent) - event.getDeathMessage(), event.getDrops()',
+  PlayerRespawnEvent: 'player (Player), event (PlayerRespawnEvent) - event.getRespawnLocation()',
+  PlayerInteractEvent: 'player (Player), event (PlayerInteractEvent) - event.getAction(), event.getClickedBlock()',
+  PlayerInteractEntityEvent: 'player (Player), event (PlayerInteractEntityEvent) - event.getRightClicked()',
+  PlayerToggleSneakEvent: 'player (Player), event (PlayerToggleSneakEvent) - event.isSneaking()',
+  PlayerToggleSprintEvent: 'player (Player), event (PlayerToggleSprintEvent) - event.isSprinting()',
+  PlayerDropItemEvent: 'player (Player), event (PlayerDropItemEvent) - event.getItemDrop()',
+  EntityPickupItemEvent: 'player (Player), event (EntityPickupItemEvent) - event.getItem()',
   // Block Events
-  BlockBreakEvent: 'player (Player), event (BlockBreakEvent) — event.getBlock(), event.setDropItems()',
-  BlockPlaceEvent: 'player (Player), event (BlockPlaceEvent) — event.getBlock(), event.getBlockAgainst()',
-  BlockBurnEvent: 'event (BlockBurnEvent) — event.getBlock(), event.getIgnitingBlock()',
-  BlockIgniteEvent: 'player (Player|null), event (BlockIgniteEvent) — event.getBlock(), event.getCause()',
+  BlockBreakEvent: 'player (Player), event (BlockBreakEvent) - event.getBlock(), event.setDropItems()',
+  BlockPlaceEvent: 'player (Player), event (BlockPlaceEvent) - event.getBlock(), event.getBlockAgainst()',
+  BlockBurnEvent: 'event (BlockBurnEvent) - event.getBlock(), event.getIgnitingBlock()',
+  BlockIgniteEvent: 'player (Player|null), event (BlockIgniteEvent) - event.getBlock(), event.getCause()',
   // Entity Events
-  EntityDamageEvent: 'player (Player|null), event (EntityDamageEvent) — event.getDamage(), event.getCause()',
-  EntityDamageByEntityEvent: 'player (Player|null), event (EntityDamageByEntityEvent) — event.getDamager(), event.getDamage()',
-  EntityDeathEvent: 'entity (LivingEntity), event (EntityDeathEvent) — event.getDrops(), event.getDroppedExp()',
-  CreatureSpawnEvent: 'entity (LivingEntity), event (CreatureSpawnEvent) — event.getSpawnReason(), event.getEntityType()',
+  EntityDamageEvent: 'player (Player|null), event (EntityDamageEvent) - event.getDamage(), event.getCause()',
+  EntityDamageByEntityEvent: 'player (Player|null), event (EntityDamageByEntityEvent) - event.getDamager(), event.getDamage()',
+  EntityDeathEvent: 'entity (LivingEntity), event (EntityDeathEvent) - event.getDrops(), event.getDroppedExp()',
+  CreatureSpawnEvent: 'entity (LivingEntity), event (CreatureSpawnEvent) - event.getSpawnReason(), event.getEntityType()',
   // World Events
-  WeatherChangeEvent: 'world (World), event (WeatherChangeEvent) — event.toWeatherState()',
+  WeatherChangeEvent: 'world (World), event (WeatherChangeEvent) - event.toWeatherState()',
 };
 
-/** Placeholder hints for common property names. */
-const PROPERTY_PLACEHOLDERS = {
-  message: 'Enter message... (use %player% for player name)',
-  itemType: 'e.g., DIAMOND, IRON_SWORD',
-  amount: '1',
-  health: '20.0',
-  hunger: '20',
-  sound: 'ENTITY_EXPERIENCE_ORB_PICKUP',
-  volume: '1.0',
-  pitch: '1.0',
-  x: '0',
-  y: '64',
-  z: '0',
-  title: 'Title text',
-  subtitle: 'Subtitle text',
-  fadeIn: '10',
-  stay: '70',
-  fadeOut: '20',
-  gameMode: 'SURVIVAL, CREATIVE, ADVENTURE, SPECTATOR',
-  effectType: 'SPEED, SLOW, STRENGTH, REGENERATION, INVISIBILITY...',
-  duration: '200 (ticks, 20 = 1 second)',
-  amplifier: '1 (effect level)',
-  particle: 'HEART, FLAME, SMOKE, EXPLOSION...',
-  count: '10',
-  level: '10',
-  command: 'Command without / (use %player% for player name)',
-  reason: 'Kick reason message',
-};
+/**
+ * Render the appropriate form field based on field definition.
+ */
+function renderField(field, value, onChange) {
+  const { type, name, options, min, max, step, hint, placeholder } = field;
+
+  switch (type) {
+    case 'grouped-select':
+      return (
+        <GroupedSelect
+          value={value}
+          onChange={onChange}
+          options={options}
+          placeholder={placeholder || `Select ${name}...`}
+        />
+      );
+
+    case 'select':
+      return (
+        <SelectInput
+          value={value}
+          onChange={onChange}
+          options={options}
+          placeholder={placeholder}
+        />
+      );
+
+    case 'slider':
+      return (
+        <Slider
+          value={value}
+          onChange={onChange}
+          min={min}
+          max={max}
+          step={step}
+          hint={hint}
+        />
+      );
+
+    case 'number':
+      return (
+        <NumberInput
+          value={value}
+          onChange={onChange}
+          min={min}
+          max={max}
+          step={step}
+          hint={hint}
+          placeholder={placeholder}
+        />
+      );
+
+    case 'select-or-custom':
+      // Dropdown with custom number input option
+      return (
+        <div className="select-or-custom">
+          <SelectInput
+            value={options.some((o) => o.value === value) ? value : 'custom'}
+            onChange={(v) => {
+              if (v !== 'custom') onChange(v);
+            }}
+            options={[...options, { value: 'custom', label: 'Custom...' }]}
+          />
+          {!options.some((o) => o.value === value) && (
+            <NumberInput
+              value={value}
+              onChange={onChange}
+              min={min}
+              max={max}
+              placeholder="Enter value..."
+            />
+          )}
+        </div>
+      );
+
+    case 'text':
+    default:
+      return (
+        <input
+          className="form-input"
+          type="text"
+          placeholder={placeholder || ''}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      );
+  }
+}
 
 export default function BlockEditor() {
   const blocks = usePluginStore((state) => state.blocks);
@@ -71,7 +130,7 @@ export default function BlockEditor() {
   if (!block) return null;
 
   const isCustom = block.type === 'custom-condition' || block.type === 'custom-action';
-  const isEvent = block.type === 'event';
+  const isAction = block.type === 'action';
 
   // Find the parent event to provide context
   const parentEvent = blocks.find(
@@ -81,19 +140,21 @@ export default function BlockEditor() {
     ? (EVENT_CONTEXT[parentEvent.name] || 'player (Player), event')
     : '';
 
-  // Property definitions from the block's definition metadata (array format from API)
-  // OR derive from block.properties keys (object format from frontend definitions)
-  let propertyDefs = block.definition?.properties;
-  if (!Array.isArray(propertyDefs) || propertyDefs.length === 0) {
-    // Fallback: derive editable fields from the block's properties object
+  // Get field definitions for this action from our centralized config
+  const actionFields = isAction ? (ACTION_FIELDS[block.name] || []) : [];
+
+  // For events or blocks without defined fields, derive from properties
+  let fallbackFields = [];
+  if (!isAction && !isCustom) {
     const propsObj = block.properties || {};
-    propertyDefs = Object.keys(propsObj).map((key) => ({
+    fallbackFields = Object.keys(propsObj).map((key) => ({
       name: key,
-      type: 'string',
-      required: false,
-      placeholder: PROPERTY_PLACEHOLDERS[key] || '',
+      label: key,
+      type: 'text',
     }));
   }
+
+  const fieldsToRender = isAction ? actionFields : fallbackFields;
 
   const handlePropertyChange = (key, value) => {
     updateBlock(block.id, {
@@ -113,34 +174,29 @@ export default function BlockEditor() {
         {block.type}
       </span>
 
-      {Array.isArray(propertyDefs) && propertyDefs.map((prop) => (
-        <div key={prop.name} className="form-group">
-          <label className="form-label" htmlFor={`prop-${prop.name}`}>
-            {prop.name} {prop.required && <span className="form-required">*</span>}
+      {/* Render fields */}
+      {fieldsToRender.map((field) => (
+        <div key={field.name} className="form-group">
+          <label className="form-label" htmlFor={`prop-${field.name}`}>
+            {field.label || field.name}
+            {field.required && <span className="form-required">*</span>}
           </label>
-          {prop.name === 'itemType' ? (
-            <ItemSelect
-              value={block.properties[prop.name] || ''}
-              onChange={(value) => handlePropertyChange(prop.name, value)}
-            />
-          ) : prop.name === 'sound' ? (
-            <SoundSelect
-              value={block.properties[prop.name] || ''}
-              onChange={(value) => handlePropertyChange(prop.name, value)}
-            />
-          ) : (
-            <input
-              id={`prop-${prop.name}`}
-              className="form-input"
-              type="text"
-              placeholder={prop.placeholder || ''}
-              value={block.properties[prop.name] || ''}
-              onChange={(e) => handlePropertyChange(prop.name, e.target.value)}
-            />
+          {renderField(
+            field,
+            block.properties[field.name] || field.default || '',
+            (value) => handlePropertyChange(field.name, value)
           )}
         </div>
       ))}
 
+      {/* No fields message for actions like CancelEvent */}
+      {isAction && fieldsToRender.length === 0 && (
+        <div className="block-editor-no-fields">
+          This action has no configurable properties.
+        </div>
+      )}
+
+      {/* Custom code editor */}
       {isCustom && (
         <div className="form-group">
           <label className="form-label">

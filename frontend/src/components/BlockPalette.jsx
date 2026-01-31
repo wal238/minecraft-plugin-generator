@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import usePluginStore from '../store/usePluginStore';
 import { apiService } from '../services/api';
 import { DEFAULT_BLOCKS, TEMPLATES } from '../services/blockDefinitions';
 import { useDragDrop } from '../hooks/useDragDrop';
 import { useBlocks } from '../hooks/useBlocks';
 import BlockItem from './BlockItem';
+import Tooltip from './Tooltip';
 
 export default function BlockPalette() {
   const availableBlocks = usePluginStore((state) => state.availableBlocks);
@@ -28,39 +29,74 @@ export default function BlockPalette() {
 
   return (
     <div className="block-palette">
-      <h3 className="palette-title">Block Palette</h3>
+      <h3 className="palette-title">
+        Block Palette
+        <span className="palette-subtitle">Drag blocks to the canvas</span>
+      </h3>
 
-      <div className="palette-section-header">Templates</div>
-      <div className="templates-list">
-        {TEMPLATES.map((tpl) => (
-          <button
-            key={tpl.id}
-            className="template-item"
-            onClick={() => addTemplate(tpl)}
-          >
-            <div className="template-item-name">{tpl.name}</div>
-            <div className="template-item-description">{tpl.description}</div>
-            <div className="template-item-meta">
-              {tpl.event.name} + {tpl.children.length} action{tpl.children.length !== 1 ? 's' : ''}
-            </div>
-          </button>
+      {/* Quick Start Templates */}
+      <div className="palette-section">
+        <div className="palette-section-header">
+          <span className="palette-section-icon palette-icon-templates"></span>
+          Quick Start Templates
+          <Tooltip text="Pre-built event + action combos. Click to add instantly." position="right">
+            <span className="info-icon">?</span>
+          </Tooltip>
+        </div>
+        <div className="templates-list">
+          {TEMPLATES.map((tpl) => (
+            <button
+              key={tpl.id}
+              className="template-item"
+              onClick={() => addTemplate(tpl)}
+            >
+              <div className="template-item-name">{tpl.name}</div>
+              <div className="template-item-description">{tpl.description}</div>
+              <div className="template-item-meta">
+                {tpl.event.name} + {tpl.children.length} action{tpl.children.length !== 1 ? 's' : ''}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Events */}
+      <div className="palette-section">
+        <div className="palette-section-header">
+          <span className="palette-section-icon palette-icon-events"></span>
+          Events
+          <span className="palette-section-count">{blocks.events.length}</span>
+        </div>
+        <div className="palette-section-hint">Drag events to canvas first</div>
+        {blocks.events.map((block) => (
+          <BlockItem key={block.id} block={block} onDragStart={handleDragStart} />
         ))}
       </div>
 
-      <div className="palette-section-header">Events</div>
-      {blocks.events.map((block) => (
-        <BlockItem key={block.id} block={block} onDragStart={handleDragStart} />
-      ))}
+      {/* Actions */}
+      <div className="palette-section">
+        <div className="palette-section-header">
+          <span className="palette-section-icon palette-icon-actions"></span>
+          Actions
+          <span className="palette-section-count">{blocks.actions.length}</span>
+        </div>
+        <div className="palette-section-hint">Drop actions onto events</div>
+        {blocks.actions.map((block) => (
+          <BlockItem key={block.id} block={block} onDragStart={handleDragStart} />
+        ))}
+      </div>
 
-      <div className="palette-section-header">Actions</div>
-      {blocks.actions.map((block) => (
-        <BlockItem key={block.id} block={block} onDragStart={handleDragStart} />
-      ))}
-
-      <div className="palette-section-header">Custom</div>
-      {blocks.custom_options.map((block) => (
-        <BlockItem key={block.id} block={block} onDragStart={handleDragStart} />
-      ))}
+      {/* Custom Code */}
+      <div className="palette-section">
+        <div className="palette-section-header">
+          <span className="palette-section-icon palette-icon-custom"></span>
+          Custom Code
+        </div>
+        <div className="palette-section-hint">Write your own Java logic</div>
+        {blocks.custom_options.map((block) => (
+          <BlockItem key={block.id} block={block} onDragStart={handleDragStart} />
+        ))}
+      </div>
     </div>
   );
 }
