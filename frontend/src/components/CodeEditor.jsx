@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import Editor from '@monaco-editor/react';
 
 /** Bukkit/Paper API completions for the Monaco editor. */
@@ -48,7 +48,10 @@ const JAVA_SUGGESTIONS = [
   { label: 'for each player', insertText: 'for (Player p : Bukkit.getOnlinePlayers()) {\n    ${1:// code}\n}', detail: 'Loop over all online players' },
 ];
 
-export default function CodeEditor({ code, onChange, language = 'java', context = '' }) {
+const CodeEditor = forwardRef(function CodeEditor(
+  { code, onChange, language = 'java', context = '' },
+  ref
+) {
   const editorRef = useRef(null);
   const disposableRef = useRef(null);
 
@@ -100,6 +103,10 @@ export default function CodeEditor({ code, onChange, language = 'java', context 
     editor.focus();
   };
 
+  useImperativeHandle(ref, () => ({
+    insertSnippet
+  }));
+
   return (
     <div className="code-editor-wrapper">
       {context && (
@@ -142,4 +149,6 @@ export default function CodeEditor({ code, onChange, language = 'java', context 
       />
     </div>
   );
-}
+});
+
+export default CodeEditor;

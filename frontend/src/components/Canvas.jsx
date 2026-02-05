@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useBlocks } from '../hooks/useBlocks';
 import usePluginStore from '../store/usePluginStore';
 import BlockNode from './BlockNode';
 
 export default function Canvas() {
-  const { blocks, addBlockFromDefinition, addChildFromDefinition, deleteBlock, removeChildBlock } = useBlocks();
+  const { blocks, addBlockFromDefinition, addChildFromDefinition, deleteBlock, removeChildBlock, reorderChildBlocks } = useBlocks();
   const setSelectedBlockId = usePluginStore((state) => state.setSelectedBlockId);
   const selectedBlockId = usePluginStore((state) => state.selectedBlockId);
   const [dragOver, setDragOver] = useState(false);
@@ -33,12 +33,23 @@ export default function Canvas() {
     }
   };
 
+  const blocksById = useMemo(() => {
+    const map = new Map();
+    for (const block of blocks) {
+      map.set(block.id, block);
+    }
+    return map;
+  }, [blocks]);
+
   // Only show top-level event blocks (not child blocks)
-  const topLevelBlocks = blocks.filter((b) => b.type === 'event');
+  const topLevelBlocks = useMemo(
+    () => blocks.filter((b) => b.type === 'event'),
+    [blocks]
+  );
 
   const getChildBlocks = (parentBlock) =>
     parentBlock.children
-      .map((childId) => blocks.find((b) => b.id === childId))
+      .map((childId) => blocksById.get(childId))
       .filter(Boolean);
 
   return (
@@ -65,6 +76,7 @@ export default function Canvas() {
             onDelete={() => deleteBlock(block.id)}
             onDeleteChild={(childId) => removeChildBlock(block.id, childId)}
             onAddChild={(definition) => addChildFromDefinition(block.id, definition)}
+            onReorderChild={(sourceId, targetId) => reorderChildBlocks(block.id, sourceId, targetId)}
           />
         ))
       )}

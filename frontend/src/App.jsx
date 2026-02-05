@@ -7,6 +7,8 @@ import Canvas from './components/Canvas';
 import BlockEditor from './components/BlockEditor';
 import ResizablePanel from './components/ResizablePanel';
 import CodePreviewModal from './components/CodePreviewModal';
+import { validateBlocks } from './utils/blockSchema';
+import { validatePluginSettings } from './utils/pluginValidation';
 import './App.css';
 
 export default function App() {
@@ -26,6 +28,14 @@ export default function App() {
 
   const [previewFiles, setPreviewFiles] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+
+  const settingsErrors = validatePluginSettings({
+    name,
+    version,
+    mainPackage,
+    author
+  });
+  const hasSettingsErrors = Object.keys(settingsErrors).length > 0;
 
   const buildPayload = () => {
     const eventBlocks = blocks.filter((b) => b.type === 'event');
@@ -65,13 +75,19 @@ export default function App() {
     setError(null);
     setSuccessMessage(null);
 
-    if (!name.trim()) {
-      setError('Please enter a plugin name.');
+    if (hasSettingsErrors) {
+      const firstError = Object.values(settingsErrors)[0];
+      setError(firstError);
       return;
     }
     const eventBlocks = blocks.filter((b) => b.type === 'event');
     if (eventBlocks.length === 0) {
       setError('Please add at least one event block to the canvas.');
+      return;
+    }
+    const validationError = validateBlocks(blocks);
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -92,13 +108,19 @@ export default function App() {
     setError(null);
     setSuccessMessage(null);
 
-    if (!name.trim()) {
-      setError('Please enter a plugin name.');
+    if (hasSettingsErrors) {
+      const firstError = Object.values(settingsErrors)[0];
+      setError(firstError);
       return;
     }
     const eventBlocks = blocks.filter((b) => b.type === 'event');
     if (eventBlocks.length === 0) {
       setError('Please add at least one event block to the canvas.');
+      return;
+    }
+    const validationError = validateBlocks(blocks);
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -139,14 +161,16 @@ export default function App() {
         <button
           className="preview-btn"
           onClick={handlePreview}
-          disabled={loading || previewLoading}
+          disabled={loading || previewLoading || hasSettingsErrors}
+          title={hasSettingsErrors ? 'Fix plugin settings to continue.' : undefined}
         >
           {previewLoading ? 'Loading...' : 'Preview Code'}
         </button>
         <button
           className="generate-btn"
           onClick={handleGenerate}
-          disabled={loading || previewLoading}
+          disabled={loading || previewLoading || hasSettingsErrors}
+          title={hasSettingsErrors ? 'Fix plugin settings to continue.' : undefined}
         >
           {loading ? 'Generating...' : 'Generate Plugin'}
         </button>

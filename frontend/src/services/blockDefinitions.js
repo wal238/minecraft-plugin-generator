@@ -385,4 +385,38 @@ export const TEMPLATES = [
       { type: 'action', name: 'PlaySound', color: '#27ae60', properties: { sound: 'BLOCK_NOTE_BLOCK_PLING', volume: '0.5', pitch: '1.5' } },
     ],
   },
+  // ── Chat Templates ──
+  {
+    id: 'tpl-chat-filter',
+    name: 'Chat Filter',
+    description: 'Filter and replace banned words in chat',
+    color: '#2980b9',
+    event: { type: 'event', name: 'AsyncPlayerChatEvent', color: '#3498db', properties: {} },
+    children: [
+      {
+        type: 'custom-action',
+        name: 'Custom Action',
+        color: '#9b59b6',
+        properties: {},
+        customCode: 'String msg = event.getMessage();\nmsg = msg.replaceAll("(?i)badword", "***");\nevent.setMessage(msg);'
+      },
+    ],
+  },
+  // ── Death Templates ──
+  {
+    id: 'tpl-death-message',
+    name: 'Death Message Customization',
+    description: 'Set a custom death message and play a sound',
+    color: '#2980b9',
+    event: { type: 'event', name: 'PlayerDeathEvent', color: '#3498db', properties: {} },
+    children: [
+      {
+        type: 'custom-action',
+        name: 'Custom Action',
+        color: '#9b59b6',
+        properties: {},
+        customCode: 'event.setDeathMessage(ChatColor.RED + player.getName() + " was eliminated!");\nplayer.getWorld().playSound(player.getLocation(), Sound.ENTITY_WITHER_DEATH, 1.0f, 1.0f);'
+      },
+    ],
+  },
 ];

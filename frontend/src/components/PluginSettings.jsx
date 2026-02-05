@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import usePluginStore from '../store/usePluginStore';
 import { InfoTooltip } from './Tooltip';
+import { suggestMainPackage, validatePluginSettings } from '../utils/pluginValidation';
 
 /** Help text for each field */
 const FIELD_HELP = {
@@ -22,6 +23,25 @@ export default function PluginSettings() {
   const setMainPackage = usePluginStore((s) => s.setMainPackage);
   const setDescription = usePluginStore((s) => s.setDescription);
   const setAuthor = usePluginStore((s) => s.setAuthor);
+  const [mainPackageTouched, setMainPackageTouched] = useState(false);
+
+  useEffect(() => {
+    const shouldAutofill = !mainPackageTouched && (!mainPackage || mainPackage === 'com.example.myplugin');
+    if (shouldAutofill && (name.trim() || author.trim())) {
+      setMainPackage(suggestMainPackage(name, author));
+    }
+  }, [author, mainPackage, mainPackageTouched, name, setMainPackage]);
+
+  const errors = useMemo(
+    () =>
+      validatePluginSettings({
+        name,
+        version,
+        mainPackage,
+        author
+      }),
+    [author, mainPackage, name, version]
+  );
 
   return (
     <div className="plugin-settings">
@@ -43,8 +63,12 @@ export default function PluginSettings() {
           onChange={(e) => setName(e.target.value)}
           placeholder="MyAwesomePlugin"
         />
-        {!name && (
-          <span className="form-hint form-hint-warning">Required - enter a plugin name</span>
+        {errors.name ? (
+          <span className="form-hint form-hint-error">{errors.name}</span>
+        ) : (
+          !name && (
+            <span className="form-hint form-hint-warning">Required - enter a plugin name</span>
+          )
         )}
       </div>
 
@@ -61,7 +85,11 @@ export default function PluginSettings() {
           onChange={(e) => setVersion(e.target.value)}
           placeholder="1.0.0"
         />
-        <span className="form-hint">Format: major.minor.patch (e.g., 1.0.0)</span>
+        {errors.version ? (
+          <span className="form-hint form-hint-error">{errors.version}</span>
+        ) : (
+          <span className="form-hint">Format: major.minor.patch (e.g., 1.0.0)</span>
+        )}
       </div>
 
       <div className="form-group">
@@ -74,10 +102,17 @@ export default function PluginSettings() {
           className="form-input form-input-mono"
           type="text"
           value={mainPackage}
-          onChange={(e) => setMainPackage(e.target.value)}
+          onChange={(e) => {
+            setMainPackageTouched(true);
+            setMainPackage(e.target.value);
+          }}
           placeholder="com.example.myplugin"
         />
-        <span className="form-hint">Java package path (lowercase, no spaces)</span>
+        {errors.mainPackage ? (
+          <span className="form-hint form-hint-error">{errors.mainPackage}</span>
+        ) : (
+          <span className="form-hint">Java package path (lowercase, no spaces)</span>
+        )}
       </div>
 
       <div className="form-group">
@@ -108,6 +143,7 @@ export default function PluginSettings() {
           onChange={(e) => setAuthor(e.target.value)}
           placeholder="YourName"
         />
+        {errors.author && <span className="form-hint form-hint-error">{errors.author}</span>}
       </div>
     </div>
   );

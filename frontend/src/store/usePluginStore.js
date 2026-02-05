@@ -53,6 +53,21 @@ const usePluginStore = create((set) => ({
         .filter((b) => b.id !== childId),
       selectedBlockId: state.selectedBlockId === childId ? null : state.selectedBlockId
     })),
+  reorderChildBlocks: (parentId, sourceId, targetId) =>
+    set((state) => ({
+      blocks: state.blocks.map((b) => {
+        if (b.id !== parentId) return b;
+        const children = [...(b.children || [])];
+        const fromIndex = children.indexOf(sourceId);
+        const toIndex = children.indexOf(targetId);
+        if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) {
+          return b;
+        }
+        children.splice(fromIndex, 1);
+        children.splice(toIndex, 0, sourceId);
+        return { ...b, children };
+      })
+    })),
   setSelectedBlockId: (selectedBlockId) => set({ selectedBlockId }),
 
   setLoading: (loading) => set({ loading }),

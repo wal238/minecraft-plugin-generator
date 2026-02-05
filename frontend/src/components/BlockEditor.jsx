@@ -1,7 +1,8 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
 import usePluginStore from '../store/usePluginStore';
 import CodeEditor from './CodeEditor';
 import { GroupedSelect, Slider, SelectInput, NumberInput } from './form';
-import { ACTION_FIELDS } from '../data/dropdownOptions';
+import { getFieldDefs } from '../utils/blockSchema';
 
 /** Context hints per event type shown above the code editor. */
 const EVENT_CONTEXT = {
@@ -129,8 +130,35 @@ export default function BlockEditor() {
   const block = blocks.find((b) => b.id === selectedBlockId);
   if (!block) return null;
 
+  const [localProperties, setLocalProperties] = useState(block.properties || {});
+  const [localCode, setLocalCode] = useState(block.customCode || '');
+  const debounceRef = useRef(null);
+  const editorRef = useRef(null);
+
+  useEffect(() => {
+    setLocalProperties(block.properties || {});
+    setLocalCode(block.customCode || '');
+  }, [block.id]);
+
+  useEffect(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    debounceRef.current = setTimeout(() => {
+      updateBlock(block.id, {
+        properties: localProperties,
+        customCode: localCode
+      });
+    }, 200);
+
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, [block.id, localProperties, localCode, updateBlock]);
+
   const isCustom = block.type === 'custom-condition' || block.type === 'custom-action';
-  const isAction = block.type === 'action';
 
   // Find the parent event to provide context
   const parentEvent = blocks.find(
@@ -140,30 +168,27 @@ export default function BlockEditor() {
     ? (EVENT_CONTEXT[parentEvent.name] || 'player (Player), event')
     : '';
 
-  // Get field definitions for this action from our centralized config
-  const actionFields = isAction ? (ACTION_FIELDS[block.name] || []) : [];
+  const fieldsToRender = useMemo(() => getFieldDefs(block.definition), [block.definition]);
 
-  // For events or blocks without defined fields, derive from properties
-  let fallbackFields = [];
-  if (!isAction && !isCustom) {
-    const propsObj = block.properties || {};
-    fallbackFields = Object.keys(propsObj).map((key) => ({
-      name: key,
-      label: key,
-      type: 'text',
-    }));
-  }
-
-  const fieldsToRender = isAction ? actionFields : fallbackFields;
+  const snippetOptions = useMemo(
+    () => [
+      { label: 'player.hasPermission("vip.access")', code: 'player.hasPermission("vip.access")' },
+      { label: 'event.getMessage()', code: 'event.getMessage()' },
+      { label: 'player.getLocation()', code: 'player.getLocation()' },
+      { label: 'event.setCancelled(true);', code: 'event.setCancelled(true);\n' },
+      { label: 'player.sendMessage("Hello!")', code: 'player.sendMessage("Hello!");\n' },
+      { label: 'Bukkit.broadcastMessage("...")', code: 'Bukkit.broadcastMessage("...");\n' },
+      { label: 'if (...) { }', code: 'if (true) {\n    \n}\n' },
+    ],
+    []
+  );
 
   const handlePropertyChange = (key, value) => {
-    updateBlock(block.id, {
-      properties: { ...block.properties, [key]: value }
-    });
+    setLocalProperties((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleCodeChange = (code) => {
-    updateBlock(block.id, { customCode: code });
+    setLocalCode(code);
   };
 
   return (
@@ -183,14 +208,14 @@ export default function BlockEditor() {
           </label>
           {renderField(
             field,
-            block.properties[field.name] || field.default || '',
+            localProperties?.[field.name] ?? field.default ?? '',
             (value) => handlePropertyChange(field.name, value)
           )}
         </div>
       ))}
 
       {/* No fields message for actions like CancelEvent */}
-      {isAction && fieldsToRender.length === 0 && (
+      {block.type === 'action' && fieldsToRender.length === 0 && (
         <div className="block-editor-no-fields">
           This action has no configurable properties.
         </div>
@@ -214,8 +239,31 @@ export default function BlockEditor() {
               <br />Example: <code>player.sendMessage("Hello!");</code>
             </div>
           )}
+          <div className="code-snippet-dropdown">
+            <label className="form-hint">Insert snippet</label>
+            <select
+              className="form-input form-select"
+              defaultValue=""
+              onChange={(e) => {
+                const value = e.target.value;
+                if (!value) return;
+                editorRef.current?.insertSnippet(value);
+                e.target.value = '';
+              }}
+            >
+              <option value="" disabled>
+                Choose a snippet...
+              </option>
+              {snippetOptions.map((opt) => (
+                <option key={opt.label} value={opt.code}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
           <CodeEditor
-            code={block.customCode || ''}
+            ref={editorRef}
+            code={localCode || ''}
             onChange={handleCodeChange}
             context={contextHint}
           />

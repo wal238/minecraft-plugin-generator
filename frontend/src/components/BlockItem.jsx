@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import Tooltip from './Tooltip';
 
 /** Extended descriptions for block types */
@@ -64,7 +64,7 @@ const BLOCK_HELP = {
   'Custom Action': 'Write any Java code for advanced logic.',
 };
 
-export default function BlockItem({ block, onDragStart }) {
+function BlockItem({ block, onDragStart, isFavorite = false, onToggleFavorite }) {
   const helpText = BLOCK_HELP[block.name] || block.description;
 
   return (
@@ -75,9 +75,25 @@ export default function BlockItem({ block, onDragStart }) {
         onDragStart={(e) => onDragStart(e, block)}
         style={{ borderLeftColor: block.color }}
       >
+        {onToggleFavorite && (
+          <button
+            type="button"
+            className={`block-item-favorite ${isFavorite ? 'active' : ''}`}
+            title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              onToggleFavorite(block);
+            }}
+          >
+            {isFavorite ? '\u2605' : '\u2606'}
+          </button>
+        )}
         <div className="block-item-name">{block.name}</div>
         <div className="block-item-description">{block.description}</div>
       </div>
     </Tooltip>
   );
 }
+
+export default memo(BlockItem);

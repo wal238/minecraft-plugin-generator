@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback, useDeferredValue } from 'react';
 
 /**
  * Searchable dropdown with grouped options.
@@ -11,7 +11,8 @@ export default function GroupedSelect({ value, onChange, options, placeholder = 
   const containerRef = useRef(null);
   const inputRef = useRef(null);
 
-  const groups = Object.keys(options);
+  const groups = useMemo(() => Object.keys(options), [options]);
+  const deferredSearch = useDeferredValue(search);
 
   // Close on outside click
   useEffect(() => {
@@ -25,8 +26,16 @@ export default function GroupedSelect({ value, onChange, options, placeholder = 
   }, []);
 
   // Filter options based on search
-  const getFilteredOptions = () => {
-    const query = search.toLowerCase();
+  const optionsLower = useMemo(() => {
+    const lower = {};
+    for (const [group, items] of Object.entries(options)) {
+      lower[group] = items.map((item) => item.toLowerCase());
+    }
+    return lower;
+  }, [options]);
+
+  const filteredOptions = useMemo(() => {
+    const query = deferredSearch.trim().toLowerCase();
     if (!query) {
       return activeGroup ? { [activeGroup]: options[activeGroup] } : options;
     }
@@ -34,28 +43,28 @@ export default function GroupedSelect({ value, onChange, options, placeholder = 
     const filtered = {};
     for (const [group, items] of Object.entries(options)) {
       if (activeGroup && group !== activeGroup) continue;
-      const matches = items.filter((item) =>
-        item.toLowerCase().includes(query)
+      const lowerItems = optionsLower[group] || [];
+      const matches = items.filter((item, index) =>
+        lowerItems[index]?.includes(query)
       );
       if (matches.length > 0) {
         filtered[group] = matches;
       }
     }
     return filtered;
-  };
+  }, [activeGroup, deferredSearch, options, optionsLower]);
 
-  const filteredOptions = getFilteredOptions();
-  const hasResults = Object.keys(filteredOptions).length > 0;
+  const hasResults = useMemo(() => Object.keys(filteredOptions).length > 0, [filteredOptions]);
 
-  const handleSelect = (item) => {
+  const handleSelect = useCallback((item) => {
     onChange(item);
     setOpen(false);
     setSearch('');
-  };
+  }, [onChange]);
 
-  const formatLabel = (item) => {
+  const formatLabel = useCallback((item) => {
     return item.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
-  };
+  }, []);
 
   return (
     <div className="grouped-select" ref={containerRef}>
