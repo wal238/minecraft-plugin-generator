@@ -831,6 +831,35 @@ class TestWorldEventActionGeneration:
         assert "if (player == null) return;" not in listener_code
         assert "event.getWorld().spawnEntity(event.getWorld().getSpawnLocation(), EntityType.AXOLOTL);" in listener_code
 
+    def test_weather_change_spawn_entity_player_target_is_guarded(self, generator, base_config):
+        """Explicit player target should be guarded in world events."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="event-1",
+                    type=BlockType.EVENT,
+                    name="WeatherChangeEvent",
+                    properties={},
+                    children=["action-1"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="SpawnEntity",
+                    properties={"entityType": "AXOLOTL", "target": "player"},
+                    children=[],
+                ),
+            ],
+        )
+
+        result = generator.generate_all(config)
+        listener_code = list(result["listeners"].values())[0]
+
+        assert "if (player == null) return;" not in listener_code
+        assert "if (player != null) {" in listener_code
+        assert "player.getWorld().spawnEntity(player.getLocation(), EntityType.AXOLOTL);" in listener_code
+
 
 class TestPomXml:
     """Test pom.xml generation."""

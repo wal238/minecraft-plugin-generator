@@ -86,6 +86,19 @@ EVENTS_WITHOUT_PLAYER: set = {
     "ServerListPingEvent",
 }
 
+BLOCK_EVENT_NAMES: set = {
+    "BlockBreakEvent",
+    "BlockPlaceEvent",
+    "BlockBurnEvent",
+    "BlockIgniteEvent",
+    "BlockGrowEvent",
+}
+
+WORLD_EVENT_NAMES: set = {
+    "WeatherChangeEvent",
+    "ThunderChangeEvent",
+}
+
 
 class CodeGeneratorService:
     """Generates all Java source files for a Minecraft plugin."""
@@ -316,6 +329,16 @@ public class EventListener{index} implements Listener {{
                 "SetEntityOnFire",
                 "SetEntityCustomName",
                 "SetEntityEquipment",
+                "SetTime",
+                "SetWeather",
+                "SetThunder",
+                "SpawnEntity",
+                "StrikeLightning",
+                "StrikeWithLightning",
+                "CreateExplosion",
+                "SpawnParticle",
+                "SpawnParticles",
+                "FillRegion",
             }
         )
         needs_living = bool(
@@ -328,7 +351,23 @@ public class EventListener{index} implements Listener {{
                 "SetEntityEquipment",
             }
         )
-        needs_block = bool(action_names & {"SetBlockType", "RemoveBlock", "FillRegion"})
+        needs_block = bool(
+            action_names
+            & {
+                "SetBlockType",
+                "RemoveBlock",
+                "FillRegion",
+                "SetTime",
+                "SetWeather",
+                "SetThunder",
+                "SpawnEntity",
+                "StrikeLightning",
+                "StrikeWithLightning",
+                "CreateExplosion",
+                "SpawnParticle",
+                "SpawnParticles",
+            }
+        )
         needs_plugin = bool(action_names & {"GrantPermission", "SetMetadata"})
 
         if needs_plugin:
@@ -336,8 +375,9 @@ public class EventListener{index} implements Listener {{
         if player_required_actions:
             lines.append("        if (player == null) return;")
         if needs_entity:
+            lines.append("        boolean hasEventEntity = event instanceof EntityEvent;")
             lines.append("        Entity targetEntity = null;")
-            lines.append("        if (event instanceof EntityEvent) {")
+            lines.append("        if (hasEventEntity) {")
             lines.append("            targetEntity = ((EntityEvent) event).getEntity();")
             lines.append("        } else if (player != null) {")
             lines.append("            targetEntity = player;")
@@ -347,8 +387,9 @@ public class EventListener{index} implements Listener {{
                 "        LivingEntity living = (targetEntity instanceof LivingEntity) ? (LivingEntity) targetEntity : null;"
             )
         if needs_block:
+            lines.append("        boolean hasEventBlock = event instanceof BlockEvent;")
             lines.append("        Block targetBlock = null;")
-            lines.append("        if (event instanceof BlockEvent) {")
+            lines.append("        if (hasEventBlock) {")
             lines.append("            targetBlock = ((BlockEvent) event).getBlock();")
             lines.append("        } else if (player != null) {")
             lines.append("            targetBlock = player.getLocation().getBlock();")
@@ -494,10 +535,75 @@ public class EventListener{index} implements Listener {{
                     offset_y = props.get("offsetY", "0")
                     offset_z = props.get("offsetZ", "0")
                     speed = props.get("speed", "0")
-                    lines.append(
-                        f"        player.getWorld().spawnParticle(Particle.{particle}, "
-                        f"player.getLocation(), {count}, {offset_x}, {offset_y}, {offset_z}, {speed});"
-                    )
+                    target = sanitize_java_string(props.get("target", "auto")).lower()
+                    if target == "player":
+                        lines.append("        if (player != null) {")
+                        lines.append(
+                            f"            player.getWorld().spawnParticle(Particle.{particle}, "
+                            f"player.getLocation(), {count}, {offset_x}, {offset_y}, {offset_z}, {speed});"
+                        )
+                        lines.append("        }")
+                    elif target == "event_entity":
+                        lines.append("        if (hasEventEntity && targetEntity != null) {")
+                        lines.append(
+                            f"            targetEntity.getWorld().spawnParticle(Particle.{particle}, "
+                            f"targetEntity.getLocation(), {count}, {offset_x}, {offset_y}, {offset_z}, {speed});"
+                        )
+                        lines.append("        }")
+                    elif target == "event_block":
+                        lines.append("        if (hasEventBlock && targetBlock != null) {")
+                        lines.append(
+                            f"            targetBlock.getWorld().spawnParticle(Particle.{particle}, "
+                            f"targetBlock.getLocation(), {count}, {offset_x}, {offset_y}, {offset_z}, {speed});"
+                        )
+                        lines.append("        }")
+                    elif target == "event_world":
+                        if event_name in WORLD_EVENT_NAMES:
+                            lines.append(
+                                f"        event.getWorld().spawnParticle(Particle.{particle}, "
+                                f"event.getWorld().getSpawnLocation(), {count}, {offset_x}, {offset_y}, {offset_z}, {speed});"
+                            )
+                        else:
+                            lines.append("        if (hasEventBlock && targetBlock != null) {")
+                            lines.append(
+                                f"            targetBlock.getWorld().spawnParticle(Particle.{particle}, "
+                                f"targetBlock.getWorld().getSpawnLocation(), {count}, {offset_x}, {offset_y}, {offset_z}, {speed});"
+                            )
+                            lines.append("        } else if (hasEventEntity && targetEntity != null) {")
+                            lines.append(
+                                f"            targetEntity.getWorld().spawnParticle(Particle.{particle}, "
+                                f"targetEntity.getWorld().getSpawnLocation(), {count}, {offset_x}, {offset_y}, {offset_z}, {speed});"
+                            )
+                            lines.append("        } else if (player != null) {")
+                            lines.append(
+                                f"            player.getWorld().spawnParticle(Particle.{particle}, "
+                                f"player.getWorld().getSpawnLocation(), {count}, {offset_x}, {offset_y}, {offset_z}, {speed});"
+                            )
+                            lines.append("        }")
+                    else:
+                        lines.append("        if (hasEventEntity && targetEntity != null) {")
+                        lines.append(
+                            f"            targetEntity.getWorld().spawnParticle(Particle.{particle}, "
+                            f"targetEntity.getLocation(), {count}, {offset_x}, {offset_y}, {offset_z}, {speed});"
+                        )
+                        lines.append("        } else if (hasEventBlock && targetBlock != null) {")
+                        lines.append(
+                            f"            targetBlock.getWorld().spawnParticle(Particle.{particle}, "
+                            f"targetBlock.getLocation(), {count}, {offset_x}, {offset_y}, {offset_z}, {speed});"
+                        )
+                        lines.append("        } else if (player != null) {")
+                        lines.append(
+                            f"            player.getWorld().spawnParticle(Particle.{particle}, "
+                            f"player.getLocation(), {count}, {offset_x}, {offset_y}, {offset_z}, {speed});"
+                        )
+                        lines.append("        }")
+                        if event_name in WORLD_EVENT_NAMES:
+                            lines.append("        else {")
+                            lines.append(
+                                f"            event.getWorld().spawnParticle(Particle.{particle}, "
+                                f"event.getWorld().getSpawnLocation(), {count}, {offset_x}, {offset_y}, {offset_z}, {speed});"
+                            )
+                            lines.append("        }")
                 elif block.name == "KillPlayer":
                     lines.append("        player.setHealth(0);")
                 elif block.name == "DamagePlayer":
@@ -522,82 +628,306 @@ public class EventListener{index} implements Listener {{
                     lines.append(f'        player.kickPlayer("{reason}");')
                 elif block.name == "SetTime":
                     time = props.get("time", "6000")
-                    if event_name in {"WeatherChangeEvent", "ThunderChangeEvent"}:
-                        lines.append(f"        event.getWorld().setTime({time});")
-                    else:
+                    target = sanitize_java_string(props.get("target", "auto")).lower()
+                    if target == "player":
                         lines.append("        if (player != null) {")
                         lines.append(f"            player.getWorld().setTime({time});")
                         lines.append("        }")
+                    elif target == "event_entity":
+                        lines.append("        if (hasEventEntity && targetEntity != null) {")
+                        lines.append(f"            targetEntity.getWorld().setTime({time});")
+                        lines.append("        }")
+                    elif target == "event_block":
+                        lines.append("        if (hasEventBlock && targetBlock != null) {")
+                        lines.append(f"            targetBlock.getWorld().setTime({time});")
+                        lines.append("        }")
+                    elif target == "event_world":
+                        if event_name in WORLD_EVENT_NAMES:
+                            lines.append(f"        event.getWorld().setTime({time});")
+                        else:
+                            lines.append("        if (hasEventBlock && targetBlock != null) {")
+                            lines.append(f"            targetBlock.getWorld().setTime({time});")
+                            lines.append("        } else if (hasEventEntity && targetEntity != null) {")
+                            lines.append(f"            targetEntity.getWorld().setTime({time});")
+                            lines.append("        } else if (player != null) {")
+                            lines.append(f"            player.getWorld().setTime({time});")
+                            lines.append("        }")
+                    else:
+                        if event_name in WORLD_EVENT_NAMES:
+                            lines.append(f"        event.getWorld().setTime({time});")
+                        else:
+                            lines.append("        if (hasEventEntity && targetEntity != null) {")
+                            lines.append(f"            targetEntity.getWorld().setTime({time});")
+                            lines.append("        } else if (hasEventBlock && targetBlock != null) {")
+                            lines.append(f"            targetBlock.getWorld().setTime({time});")
+                            lines.append("        } else if (player != null) {")
+                            lines.append(f"            player.getWorld().setTime({time});")
+                            lines.append("        }")
                 elif block.name == "SetWeather":
                     storm = props.get("storm", "false").lower()
                     duration = props.get("duration", "6000")
-                    if event_name in {"WeatherChangeEvent", "ThunderChangeEvent"}:
-                        lines.append(f"        event.getWorld().setStorm({storm});")
-                        lines.append(f"        event.getWorld().setWeatherDuration({duration});")
-                    else:
+                    target = sanitize_java_string(props.get("target", "auto")).lower()
+                    if target == "player":
                         lines.append("        if (player != null) {")
                         lines.append(f"            player.getWorld().setStorm({storm});")
                         lines.append(f"            player.getWorld().setWeatherDuration({duration});")
                         lines.append("        }")
+                    elif target == "event_entity":
+                        lines.append("        if (hasEventEntity && targetEntity != null) {")
+                        lines.append(f"            targetEntity.getWorld().setStorm({storm});")
+                        lines.append(f"            targetEntity.getWorld().setWeatherDuration({duration});")
+                        lines.append("        }")
+                    elif target == "event_block":
+                        lines.append("        if (hasEventBlock && targetBlock != null) {")
+                        lines.append(f"            targetBlock.getWorld().setStorm({storm});")
+                        lines.append(f"            targetBlock.getWorld().setWeatherDuration({duration});")
+                        lines.append("        }")
+                    elif target == "event_world":
+                        if event_name in WORLD_EVENT_NAMES:
+                            lines.append(f"        event.getWorld().setStorm({storm});")
+                            lines.append(f"        event.getWorld().setWeatherDuration({duration});")
+                        else:
+                            lines.append("        if (hasEventBlock && targetBlock != null) {")
+                            lines.append(f"            targetBlock.getWorld().setStorm({storm});")
+                            lines.append(f"            targetBlock.getWorld().setWeatherDuration({duration});")
+                            lines.append("        } else if (hasEventEntity && targetEntity != null) {")
+                            lines.append(f"            targetEntity.getWorld().setStorm({storm});")
+                            lines.append(f"            targetEntity.getWorld().setWeatherDuration({duration});")
+                            lines.append("        } else if (player != null) {")
+                            lines.append(f"            player.getWorld().setStorm({storm});")
+                            lines.append(f"            player.getWorld().setWeatherDuration({duration});")
+                            lines.append("        }")
+                    else:
+                        if event_name in WORLD_EVENT_NAMES:
+                            lines.append(f"        event.getWorld().setStorm({storm});")
+                            lines.append(f"        event.getWorld().setWeatherDuration({duration});")
+                        else:
+                            lines.append("        if (hasEventEntity && targetEntity != null) {")
+                            lines.append(f"            targetEntity.getWorld().setStorm({storm});")
+                            lines.append(f"            targetEntity.getWorld().setWeatherDuration({duration});")
+                            lines.append("        } else if (hasEventBlock && targetBlock != null) {")
+                            lines.append(f"            targetBlock.getWorld().setStorm({storm});")
+                            lines.append(f"            targetBlock.getWorld().setWeatherDuration({duration});")
+                            lines.append("        } else if (player != null) {")
+                            lines.append(f"            player.getWorld().setStorm({storm});")
+                            lines.append(f"            player.getWorld().setWeatherDuration({duration});")
+                            lines.append("        }")
                 elif block.name == "SetThunder":
                     thunder = props.get("thunder", "false").lower()
                     duration = props.get("duration", "6000")
-                    if event_name in {"WeatherChangeEvent", "ThunderChangeEvent"}:
-                        lines.append(f"        event.getWorld().setThundering({thunder});")
-                        lines.append(f"        event.getWorld().setThunderDuration({duration});")
-                    else:
+                    target = sanitize_java_string(props.get("target", "auto")).lower()
+                    if target == "player":
                         lines.append("        if (player != null) {")
                         lines.append(f"            player.getWorld().setThundering({thunder});")
                         lines.append(f"            player.getWorld().setThunderDuration({duration});")
                         lines.append("        }")
+                    elif target == "event_entity":
+                        lines.append("        if (hasEventEntity && targetEntity != null) {")
+                        lines.append(f"            targetEntity.getWorld().setThundering({thunder});")
+                        lines.append(f"            targetEntity.getWorld().setThunderDuration({duration});")
+                        lines.append("        }")
+                    elif target == "event_block":
+                        lines.append("        if (hasEventBlock && targetBlock != null) {")
+                        lines.append(f"            targetBlock.getWorld().setThundering({thunder});")
+                        lines.append(f"            targetBlock.getWorld().setThunderDuration({duration});")
+                        lines.append("        }")
+                    elif target == "event_world":
+                        if event_name in WORLD_EVENT_NAMES:
+                            lines.append(f"        event.getWorld().setThundering({thunder});")
+                            lines.append(f"        event.getWorld().setThunderDuration({duration});")
+                        else:
+                            lines.append("        if (hasEventBlock && targetBlock != null) {")
+                            lines.append(f"            targetBlock.getWorld().setThundering({thunder});")
+                            lines.append(f"            targetBlock.getWorld().setThunderDuration({duration});")
+                            lines.append("        } else if (hasEventEntity && targetEntity != null) {")
+                            lines.append(f"            targetEntity.getWorld().setThundering({thunder});")
+                            lines.append(f"            targetEntity.getWorld().setThunderDuration({duration});")
+                            lines.append("        } else if (player != null) {")
+                            lines.append(f"            player.getWorld().setThundering({thunder});")
+                            lines.append(f"            player.getWorld().setThunderDuration({duration});")
+                            lines.append("        }")
+                    else:
+                        if event_name in WORLD_EVENT_NAMES:
+                            lines.append(f"        event.getWorld().setThundering({thunder});")
+                            lines.append(f"        event.getWorld().setThunderDuration({duration});")
+                        else:
+                            lines.append("        if (hasEventEntity && targetEntity != null) {")
+                            lines.append(f"            targetEntity.getWorld().setThundering({thunder});")
+                            lines.append(f"            targetEntity.getWorld().setThunderDuration({duration});")
+                            lines.append("        } else if (hasEventBlock && targetBlock != null) {")
+                            lines.append(f"            targetBlock.getWorld().setThundering({thunder});")
+                            lines.append(f"            targetBlock.getWorld().setThunderDuration({duration});")
+                            lines.append("        } else if (player != null) {")
+                            lines.append(f"            player.getWorld().setThundering({thunder});")
+                            lines.append(f"            player.getWorld().setThunderDuration({duration});")
+                            lines.append("        }")
                 elif block.name == "SpawnEntity":
                     entity_type = sanitize_java_string(props.get("entityType", "ZOMBIE")).upper()
-                    if event_name in {"WeatherChangeEvent", "ThunderChangeEvent"}:
-                        lines.append(
-                            f"        event.getWorld().spawnEntity("
-                            f"event.getWorld().getSpawnLocation(), EntityType.{entity_type});"
-                        )
-                    else:
+                    target = sanitize_java_string(props.get("target", "auto")).lower()
+                    if target == "player":
                         lines.append("        if (player != null) {")
                         lines.append(
-                            f"            player.getWorld().spawnEntity("
-                            f"player.getLocation(), EntityType.{entity_type});"
+                            f"            player.getWorld().spawnEntity(player.getLocation(), EntityType.{entity_type});"
                         )
                         lines.append("        }")
+                    elif target == "event_entity":
+                        lines.append("        if (hasEventEntity && targetEntity != null) {")
+                        lines.append(
+                            f"            targetEntity.getWorld().spawnEntity(targetEntity.getLocation(), EntityType.{entity_type});"
+                        )
+                        lines.append("        }")
+                    elif target == "event_block":
+                        lines.append("        if (hasEventBlock && targetBlock != null) {")
+                        lines.append(
+                            f"            targetBlock.getWorld().spawnEntity(targetBlock.getLocation(), EntityType.{entity_type});"
+                        )
+                        lines.append("        }")
+                    elif target == "event_world":
+                        if event_name in WORLD_EVENT_NAMES:
+                            lines.append(
+                                f"        event.getWorld().spawnEntity(event.getWorld().getSpawnLocation(), EntityType.{entity_type});"
+                            )
+                        else:
+                            lines.append("        if (hasEventBlock && targetBlock != null) {")
+                            lines.append(
+                                f"            targetBlock.getWorld().spawnEntity(targetBlock.getWorld().getSpawnLocation(), EntityType.{entity_type});"
+                            )
+                            lines.append("        } else if (hasEventEntity && targetEntity != null) {")
+                            lines.append(
+                                f"            targetEntity.getWorld().spawnEntity(targetEntity.getWorld().getSpawnLocation(), EntityType.{entity_type});"
+                            )
+                            lines.append("        } else if (player != null) {")
+                            lines.append(
+                                f"            player.getWorld().spawnEntity(player.getWorld().getSpawnLocation(), EntityType.{entity_type});"
+                            )
+                            lines.append("        }")
+                    else:
+                        lines.append("        if (hasEventEntity && targetEntity != null) {")
+                        lines.append(
+                            f"            targetEntity.getWorld().spawnEntity(targetEntity.getLocation(), EntityType.{entity_type});"
+                        )
+                        lines.append("        } else if (hasEventBlock && targetBlock != null) {")
+                        lines.append(
+                            f"            targetBlock.getWorld().spawnEntity(targetBlock.getLocation(), EntityType.{entity_type});"
+                        )
+                        lines.append("        } else if (player != null) {")
+                        lines.append(
+                            f"            player.getWorld().spawnEntity(player.getLocation(), EntityType.{entity_type});"
+                        )
+                        lines.append("        }")
+                        if event_name in WORLD_EVENT_NAMES:
+                            lines.append("        else {")
+                            lines.append(
+                                f"            event.getWorld().spawnEntity(event.getWorld().getSpawnLocation(), EntityType.{entity_type});"
+                            )
+                            lines.append("        }")
                 elif block.name == "StrikeLightning" or block.name == "StrikeWithLightning":
                     damage = props.get("damage", "true").lower()
-                    if event_name in {"WeatherChangeEvent", "ThunderChangeEvent"}:
-                        if damage == "true":
-                            lines.append(
-                                "        event.getWorld().strikeLightning(event.getWorld().getSpawnLocation());"
-                            )
-                        else:
-                            lines.append(
-                                "        event.getWorld().strikeLightningEffect(event.getWorld().getSpawnLocation());"
-                            )
-                    else:
+                    target = sanitize_java_string(props.get("target", "auto")).lower()
+                    lightning_call = "strikeLightning" if damage == "true" else "strikeLightningEffect"
+                    if target == "player":
                         lines.append("        if (player != null) {")
-                        if damage == "true":
-                            lines.append("            player.getWorld().strikeLightning(player.getLocation());")
-                        else:
-                            lines.append("            player.getWorld().strikeLightningEffect(player.getLocation());")
+                        lines.append(f"            player.getWorld().{lightning_call}(player.getLocation());")
                         lines.append("        }")
+                    elif target == "event_entity":
+                        lines.append("        if (hasEventEntity && targetEntity != null) {")
+                        lines.append(f"            targetEntity.getWorld().{lightning_call}(targetEntity.getLocation());")
+                        lines.append("        }")
+                    elif target == "event_block":
+                        lines.append("        if (hasEventBlock && targetBlock != null) {")
+                        lines.append(f"            targetBlock.getWorld().{lightning_call}(targetBlock.getLocation());")
+                        lines.append("        }")
+                    elif target == "event_world":
+                        if event_name in WORLD_EVENT_NAMES:
+                            lines.append(f"        event.getWorld().{lightning_call}(event.getWorld().getSpawnLocation());")
+                        else:
+                            lines.append("        if (hasEventBlock && targetBlock != null) {")
+                            lines.append(
+                                f"            targetBlock.getWorld().{lightning_call}(targetBlock.getWorld().getSpawnLocation());"
+                            )
+                            lines.append("        } else if (hasEventEntity && targetEntity != null) {")
+                            lines.append(
+                                f"            targetEntity.getWorld().{lightning_call}(targetEntity.getWorld().getSpawnLocation());"
+                            )
+                            lines.append("        } else if (player != null) {")
+                            lines.append(
+                                f"            player.getWorld().{lightning_call}(player.getWorld().getSpawnLocation());"
+                            )
+                            lines.append("        }")
+                    else:
+                        lines.append("        if (hasEventEntity && targetEntity != null) {")
+                        lines.append(f"            targetEntity.getWorld().{lightning_call}(targetEntity.getLocation());")
+                        lines.append("        } else if (hasEventBlock && targetBlock != null) {")
+                        lines.append(f"            targetBlock.getWorld().{lightning_call}(targetBlock.getLocation());")
+                        lines.append("        } else if (player != null) {")
+                        lines.append(f"            player.getWorld().{lightning_call}(player.getLocation());")
+                        lines.append("        }")
+                        if event_name in WORLD_EVENT_NAMES:
+                            lines.append("        else {")
+                            lines.append(f"            event.getWorld().{lightning_call}(event.getWorld().getSpawnLocation());")
+                            lines.append("        }")
                 elif block.name == "CreateExplosion":
                     power = props.get("power", "4.0")
                     fire = props.get("fire", "false").lower()
                     break_blocks = props.get("breakBlocks", "false").lower()
-                    if event_name in {"WeatherChangeEvent", "ThunderChangeEvent"}:
-                        lines.append(
-                            f"        event.getWorld().createExplosion("
-                            f"event.getWorld().getSpawnLocation(), {power}f, {fire}, {break_blocks});"
-                        )
-                    else:
+                    target = sanitize_java_string(props.get("target", "auto")).lower()
+                    if target == "player":
                         lines.append("        if (player != null) {")
                         lines.append(
-                            f"            player.getWorld().createExplosion("
-                            f"player.getLocation(), {power}f, {fire}, {break_blocks});"
+                            f"            player.getWorld().createExplosion(player.getLocation(), {power}f, {fire}, {break_blocks});"
                         )
                         lines.append("        }")
+                    elif target == "event_entity":
+                        lines.append("        if (hasEventEntity && targetEntity != null) {")
+                        lines.append(
+                            f"            targetEntity.getWorld().createExplosion(targetEntity.getLocation(), {power}f, {fire}, {break_blocks});"
+                        )
+                        lines.append("        }")
+                    elif target == "event_block":
+                        lines.append("        if (hasEventBlock && targetBlock != null) {")
+                        lines.append(
+                            f"            targetBlock.getWorld().createExplosion(targetBlock.getLocation(), {power}f, {fire}, {break_blocks});"
+                        )
+                        lines.append("        }")
+                    elif target == "event_world":
+                        if event_name in WORLD_EVENT_NAMES:
+                            lines.append(
+                                f"        event.getWorld().createExplosion(event.getWorld().getSpawnLocation(), {power}f, {fire}, {break_blocks});"
+                            )
+                        else:
+                            lines.append("        if (hasEventBlock && targetBlock != null) {")
+                            lines.append(
+                                f"            targetBlock.getWorld().createExplosion(targetBlock.getWorld().getSpawnLocation(), {power}f, {fire}, {break_blocks});"
+                            )
+                            lines.append("        } else if (hasEventEntity && targetEntity != null) {")
+                            lines.append(
+                                f"            targetEntity.getWorld().createExplosion(targetEntity.getWorld().getSpawnLocation(), {power}f, {fire}, {break_blocks});"
+                            )
+                            lines.append("        } else if (player != null) {")
+                            lines.append(
+                                f"            player.getWorld().createExplosion(player.getWorld().getSpawnLocation(), {power}f, {fire}, {break_blocks});"
+                            )
+                            lines.append("        }")
+                    else:
+                        lines.append("        if (hasEventEntity && targetEntity != null) {")
+                        lines.append(
+                            f"            targetEntity.getWorld().createExplosion(targetEntity.getLocation(), {power}f, {fire}, {break_blocks});"
+                        )
+                        lines.append("        } else if (hasEventBlock && targetBlock != null) {")
+                        lines.append(
+                            f"            targetBlock.getWorld().createExplosion(targetBlock.getLocation(), {power}f, {fire}, {break_blocks});"
+                        )
+                        lines.append("        } else if (player != null) {")
+                        lines.append(
+                            f"            player.getWorld().createExplosion(player.getLocation(), {power}f, {fire}, {break_blocks});"
+                        )
+                        lines.append("        }")
+                        if event_name in WORLD_EVENT_NAMES:
+                            lines.append("        else {")
+                            lines.append(
+                                f"            event.getWorld().createExplosion(event.getWorld().getSpawnLocation(), {power}f, {fire}, {break_blocks});"
+                            )
+                            lines.append("        }")
                 elif block.name == "SetBlockType":
                     block_type = sanitize_java_string(props.get("blockType", "STONE")).upper()
                     lines.append("        if (targetBlock != null) {")
@@ -615,38 +945,44 @@ public class EventListener{index} implements Listener {{
                     y2 = props.get("y2", "70")
                     z2 = props.get("z2", "10")
                     block_type = sanitize_java_string(props.get("blockType", "STONE")).upper()
-                    if event_name in {"WeatherChangeEvent", "ThunderChangeEvent"}:
-                        lines.append(f"        for (int x = {x1}; x <= {x2}; x++) {{")
-                        lines.append(f"            for (int y = {y1}; y <= {y2}; y++) {{")
-                        lines.append(f"                for (int z = {z1}; z <= {z2}; z++) {{")
-                        lines.append(
-                            f"                    event.getWorld().getBlockAt(x, y, z).setType(Material.{block_type});"
-                        )
-                        lines.append("                }")
-                        lines.append("            }")
-                        lines.append("        }")
-                    elif event_name in {"BlockBreakEvent", "BlockPlaceEvent", "BlockBurnEvent", "BlockIgniteEvent", "BlockGrowEvent"}:
-                        lines.append(f"        for (int x = {x1}; x <= {x2}; x++) {{")
-                        lines.append(f"            for (int y = {y1}; y <= {y2}; y++) {{")
-                        lines.append(f"                for (int z = {z1}; z <= {z2}; z++) {{")
-                        lines.append(
-                            f"                    event.getBlock().getWorld().getBlockAt(x, y, z).setType(Material.{block_type});"
-                        )
-                        lines.append("                }")
-                        lines.append("            }")
-                        lines.append("        }")
+                    target = sanitize_java_string(props.get("target", "auto")).lower()
+                    world_expr = "null"
+                    world_guard = ""
+                    if target == "player":
+                        world_expr = "player.getWorld()"
+                        world_guard = "player != null"
+                    elif target == "event_entity":
+                        world_expr = "targetEntity.getWorld()"
+                        world_guard = "hasEventEntity && targetEntity != null"
+                    elif target == "event_block":
+                        world_expr = "targetBlock.getWorld()"
+                        world_guard = "hasEventBlock && targetBlock != null"
+                    elif target == "event_world":
+                        if event_name in WORLD_EVENT_NAMES:
+                            world_expr = "event.getWorld()"
+                            world_guard = "true"
+                        else:
+                            world_expr = "(hasEventBlock && targetBlock != null) ? targetBlock.getWorld() : (hasEventEntity && targetEntity != null) ? targetEntity.getWorld() : (player != null ? player.getWorld() : null)"
+                            world_guard = f"({world_expr}) != null"
                     else:
-                        lines.append("        if (player != null) {")
-                        lines.append(f"            for (int x = {x1}; x <= {x2}; x++) {{")
-                        lines.append(f"                for (int y = {y1}; y <= {y2}; y++) {{")
-                        lines.append(f"                    for (int z = {z1}; z <= {z2}; z++) {{")
-                        lines.append(
-                            f"                        player.getWorld().getBlockAt(x, y, z).setType(Material.{block_type});"
-                        )
-                        lines.append("                    }")
-                        lines.append("                }")
-                        lines.append("            }")
-                        lines.append("        }")
+                        if event_name in WORLD_EVENT_NAMES:
+                            world_expr = "event.getWorld()"
+                            world_guard = "true"
+                        else:
+                            world_expr = "(hasEventEntity && targetEntity != null) ? targetEntity.getWorld() : (hasEventBlock && targetBlock != null) ? targetBlock.getWorld() : (player != null ? player.getWorld() : null)"
+                            world_guard = f"({world_expr}) != null"
+
+                    lines.append(f"        if ({world_guard}) {{")
+                    lines.append(f"            for (int x = {x1}; x <= {x2}; x++) {{")
+                    lines.append(f"                for (int y = {y1}; y <= {y2}; y++) {{")
+                    lines.append(f"                    for (int z = {z1}; z <= {z2}; z++) {{")
+                    lines.append(
+                        f"                        {world_expr}.getBlockAt(x, y, z).setType(Material.{block_type});"
+                    )
+                    lines.append("                    }")
+                    lines.append("                }")
+                    lines.append("            }")
+                    lines.append("        }")
                 elif block.name == "SetGlowing":
                     glowing = props.get("glowing", "true").lower()
                     lines.append(f"        player.setGlowing({glowing});")

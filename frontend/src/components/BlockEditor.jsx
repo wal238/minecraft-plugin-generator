@@ -3,6 +3,7 @@ import usePluginStore from '../store/usePluginStore';
 import CodeEditor from './CodeEditor';
 import { GroupedSelect, Slider, SelectInput, NumberInput } from './form';
 import { getFieldDefs } from '../utils/blockSchema';
+import { getAvailableTargets, supportsTargeting } from '../utils/actionTargeting';
 
 /** Context hints per event type shown above the code editor. */
 const EVENT_CONTEXT = {
@@ -171,9 +172,30 @@ export default function BlockEditor() {
     : '';
 
   const fieldsToRender = useMemo(() => getFieldDefs(block.definition), [block.definition]);
+  const targetField = useMemo(() => {
+    if (block.type !== 'action' || !supportsTargeting(block.name)) return null;
+
+    const targetOptions = getAvailableTargets(block.name, parentEvent?.name);
+    if (targetOptions.length === 0) return null;
+
+    return {
+      name: 'target',
+      label: 'Target Context',
+      type: 'select',
+      default: 'auto',
+      options: targetOptions
+    };
+  }, [block.type, block.name, parentEvent?.name]);
+
+  const fieldsWithTarget = useMemo(() => {
+    if (!targetField) return fieldsToRender;
+    const withoutTarget = fieldsToRender.filter((field) => field.name !== 'target');
+    return [targetField, ...withoutTarget];
+  }, [fieldsToRender, targetField]);
+
   const resolvedFields = useMemo(
     () =>
-      fieldsToRender.map((field) => {
+      fieldsWithTarget.map((field) => {
         if (field.optionsKey === 'worlds') {
           const mappedWorlds = (worldOptions || []).map((world) => ({
             value: world,
@@ -186,7 +208,7 @@ export default function BlockEditor() {
         }
         return field;
       }),
-    [fieldsToRender, worldOptions]
+    [fieldsWithTarget, worldOptions]
   );
 
   const snippetOptions = useMemo(

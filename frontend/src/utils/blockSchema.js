@@ -1,4 +1,5 @@
 import { ACTION_FIELDS } from '../data/dropdownOptions';
+import { getActionTargetError, supportsTargeting } from './actionTargeting';
 
 const titleCase = (value) =>
   value
@@ -74,7 +75,25 @@ const flattenOptions = (options) => {
 };
 
 export const validateBlocks = (blocks) => {
+  const eventByChildId = new Map();
+  for (const eventBlock of blocks) {
+    if (eventBlock.type !== 'event') continue;
+    for (const childId of eventBlock.children || []) {
+      eventByChildId.set(childId, eventBlock);
+    }
+  }
+
   for (const block of blocks) {
+    if (block.type === 'action' && supportsTargeting(block.name)) {
+      const parentEvent = eventByChildId.get(block.id);
+      const targetError = getActionTargetError(
+        block.name,
+        parentEvent?.name,
+        block.properties?.target
+      );
+      if (targetError) return targetError;
+    }
+
     const fields = getFieldDefs(block.definition);
     for (const field of fields) {
       const value = block.properties?.[field.name];
