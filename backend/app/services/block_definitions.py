@@ -239,6 +239,23 @@ class BlockDefinitionService:
                     "properties": [],
                     "category": "server",
                 },
+                # Command Events
+                {
+                    "id": "command-event",
+                    "name": "CommandEvent",
+                    "type": "event",
+                    "description": "Triggered when a player runs a custom command",
+                    "color": "#e74c3c",
+                    "category": "server",
+                    "properties": [
+                        {"name": "commandName", "type": "string", "required": True, "placeholder": "mycommand"},
+                        {"name": "commandDescription", "type": "string", "required": False, "placeholder": "My custom command"},
+                        {"name": "commandUsage", "type": "string", "required": False, "placeholder": "/<command>"},
+                        {"name": "commandPermission", "type": "string", "required": False, "placeholder": "myplugin.mycommand"},
+                        {"name": "commandAliases", "type": "string", "required": False, "placeholder": "mc,mycmd"},
+                        {"name": "commandTabCompletions", "type": "string", "required": False, "placeholder": "reload,status,help"},
+                    ],
+                },
             ],
             "actions": [
                 {
@@ -862,6 +879,122 @@ class BlockDefinitionService:
                     "color": "#9b59b6",
                     "properties": [
                         {"name": "command", "type": "string", "required": True, "placeholder": "say Hello"},
+                    ],
+                },
+                # Condition Blocks (guard clauses)
+                {
+                    "id": "condition-has-permission",
+                    "name": "HasPermission",
+                    "type": "action",
+                    "description": "Only run following actions if player has a permission node",
+                    "color": "#f39c12",
+                    "properties": [
+                        {"name": "permission", "type": "string", "required": True, "placeholder": "myplugin.admin"},
+                    ],
+                },
+                {
+                    "id": "condition-has-item",
+                    "name": "HasItem",
+                    "type": "action",
+                    "description": "Only run following actions if player has a specific item in inventory",
+                    "color": "#f39c12",
+                    "properties": [
+                        {"name": "itemType", "type": "string", "required": True, "placeholder": "DIAMOND"},
+                        {"name": "amount", "type": "string", "required": False, "placeholder": "1"},
+                    ],
+                },
+                {
+                    "id": "condition-health-above",
+                    "name": "HealthAbove",
+                    "type": "action",
+                    "description": "Only run following actions if player health is above a threshold",
+                    "color": "#f39c12",
+                    "properties": [
+                        {"name": "health", "type": "string", "required": True, "placeholder": "10"},
+                    ],
+                },
+                {
+                    "id": "condition-health-below",
+                    "name": "HealthBelow",
+                    "type": "action",
+                    "description": "Only run following actions if player health is below a threshold",
+                    "color": "#f39c12",
+                    "properties": [
+                        {"name": "health", "type": "string", "required": True, "placeholder": "5"},
+                    ],
+                },
+                {
+                    "id": "condition-gamemode-equals",
+                    "name": "GameModeEquals",
+                    "type": "action",
+                    "description": "Only run following actions if player is in a specific game mode",
+                    "color": "#f39c12",
+                    "properties": [
+                        {"name": "gameMode", "type": "string", "required": True, "placeholder": "SURVIVAL"},
+                    ],
+                },
+                {
+                    "id": "condition-is-in-world",
+                    "name": "IsInWorld",
+                    "type": "action",
+                    "description": "Only run following actions if player is in a specific world",
+                    "color": "#f39c12",
+                    "properties": [
+                        {"name": "world", "type": "string", "required": True, "placeholder": "world"},
+                    ],
+                },
+                {
+                    "id": "condition-is-sneaking",
+                    "name": "IsSneaking",
+                    "type": "action",
+                    "description": "Only run following actions if player is sneaking",
+                    "color": "#f39c12",
+                    "properties": [],
+                },
+                {
+                    "id": "condition-is-flying",
+                    "name": "IsFlying",
+                    "type": "action",
+                    "description": "Only run following actions if player is flying",
+                    "color": "#f39c12",
+                    "properties": [],
+                },
+                {
+                    "id": "condition-is-op",
+                    "name": "IsOp",
+                    "type": "action",
+                    "description": "Only run following actions if player is an operator",
+                    "color": "#f39c12",
+                    "properties": [],
+                },
+                {
+                    "id": "condition-hunger-above",
+                    "name": "HungerAbove",
+                    "type": "action",
+                    "description": "Only run following actions if player food level is above threshold",
+                    "color": "#f39c12",
+                    "properties": [
+                        {"name": "hunger", "type": "string", "required": True, "placeholder": "10"},
+                    ],
+                },
+                {
+                    "id": "condition-hunger-below",
+                    "name": "HungerBelow",
+                    "type": "action",
+                    "description": "Only run following actions if player food level is below threshold",
+                    "color": "#f39c12",
+                    "properties": [
+                        {"name": "hunger", "type": "string", "required": True, "placeholder": "5"},
+                    ],
+                },
+                {
+                    "id": "condition-level-above",
+                    "name": "LevelAbove",
+                    "type": "action",
+                    "description": "Only run following actions if player experience level is above threshold",
+                    "color": "#f39c12",
+                    "properties": [
+                        {"name": "level", "type": "string", "required": True, "placeholder": "10"},
                     ],
                 },
             ],

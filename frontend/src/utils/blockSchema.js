@@ -74,6 +74,8 @@ const flattenOptions = (options) => {
   return [];
 };
 
+const COMMAND_NAME_PATTERN = /^[a-z][a-z0-9_-]{0,31}$/;
+
 export const validateBlocks = (blocks) => {
   const eventByChildId = new Map();
   for (const eventBlock of blocks) {
@@ -84,6 +86,25 @@ export const validateBlocks = (blocks) => {
   }
 
   for (const block of blocks) {
+    if (block.type === 'event' && block.name === 'CommandEvent') {
+      const rawCommandName = String(block.properties?.commandName || '').trim();
+      if (!rawCommandName) {
+        return 'CommandEvent: Command Name is required.';
+      }
+      if (!COMMAND_NAME_PATTERN.test(rawCommandName)) {
+        return 'CommandEvent: Command Name must start with a lowercase letter and use only lowercase letters, numbers, underscores, or hyphens.';
+      }
+
+      const aliasesRaw = String(block.properties?.commandAliases || '').trim();
+      if (aliasesRaw) {
+        const aliases = aliasesRaw.split(',').map((alias) => alias.trim()).filter(Boolean);
+        const invalidAlias = aliases.find((alias) => !COMMAND_NAME_PATTERN.test(alias));
+        if (invalidAlias) {
+          return `CommandEvent: Invalid alias "${invalidAlias}". Aliases must use lowercase letters, numbers, underscores, or hyphens.`;
+        }
+      }
+    }
+
     if (block.type === 'action' && supportsTargeting(block.name)) {
       const parentEvent = eventByChildId.get(block.id);
       const targetError = getActionTargetError(

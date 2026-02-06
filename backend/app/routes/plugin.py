@@ -55,6 +55,11 @@ async def preview_code(config: PluginConfig) -> PreviewResponse:
         listener_path = f"src/main/java/{config.main_package.replace('.', '/')}/listeners/{filename}"
         files[listener_path] = content
 
+    # Command classes
+    for filename, content in generated.get("commands", {}).items():
+        command_path = f"src/main/java/{config.main_package.replace('.', '/')}/commands/{filename}"
+        files[command_path] = content
+
     # Config files
     files["src/main/resources/plugin.yml"] = generated["plugin_yml"]
     files["pom.xml"] = generated["pom_xml"]

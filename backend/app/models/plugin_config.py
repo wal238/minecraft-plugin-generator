@@ -7,6 +7,8 @@ from pydantic import BaseModel, field_validator
 
 from .block import Block
 
+COMMAND_NAME_PATTERN = re.compile(r"^[a-z][a-z0-9_-]{0,31}$")
+
 
 class PluginConfig(BaseModel):
     """Configuration for generating a Minecraft plugin."""
@@ -35,6 +37,32 @@ class PluginConfig(BaseModel):
         """Ensure at least one block is provided."""
         if not v or len(v) == 0:
             raise ValueError("At least one block is required")
+
+        command_names: set[str] = set()
+        for block in v:
+            if block.type.value != "event" or block.name != "CommandEvent":
+                continue
+
+            raw_name = str((block.properties or {}).get("commandName", "")).strip()
+            if not raw_name:
+                raise ValueError("CommandEvent commandName is required")
+            if not COMMAND_NAME_PATTERN.match(raw_name):
+                raise ValueError(
+                    "CommandEvent commandName must start with a lowercase letter and use only lowercase letters, numbers, underscores, or hyphens"
+                )
+
+            if raw_name in command_names:
+                raise ValueError(f"Duplicate commandName '{raw_name}'")
+            command_names.add(raw_name)
+
+            aliases_raw = str((block.properties or {}).get("commandAliases", "")).strip()
+            if aliases_raw:
+                aliases = [alias.strip() for alias in aliases_raw.split(",") if alias.strip()]
+                for alias in aliases:
+                    if not COMMAND_NAME_PATTERN.match(alias):
+                        raise ValueError(
+                            f"Invalid command alias '{alias}'. Use lowercase letters, numbers, underscores, or hyphens"
+                        )
         return v
 
     @property

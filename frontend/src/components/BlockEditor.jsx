@@ -32,6 +32,7 @@ const EVENT_CONTEXT = {
   CreatureSpawnEvent: 'entity (LivingEntity), event (CreatureSpawnEvent) - event.getSpawnReason(), event.getEntityType()',
   // World Events
   WeatherChangeEvent: 'world (World), event (WeatherChangeEvent) - event.toWeatherState()',
+  CommandEvent: 'player (Player), args (String[]) - command sender and arguments',
 };
 
 /**

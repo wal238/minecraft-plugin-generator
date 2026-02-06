@@ -861,6 +861,363 @@ class TestWorldEventActionGeneration:
         assert "player.getWorld().spawnEntity(player.getLocation(), EntityType.AXOLOTL);" in listener_code
 
 
+class TestConditionBlocks:
+    """Test condition block code generation (guard clauses)."""
+
+    def test_has_permission_guard(self, generator, base_config):
+        """Test HasPermission generates guard clause."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="event-1", type=BlockType.EVENT, name="PlayerJoinEvent",
+                      properties={}, children=["cond-1", "action-1"]),
+                Block(id="cond-1", type=BlockType.ACTION, name="HasPermission",
+                      properties={"permission": "myplugin.vip"}, children=[]),
+                Block(id="action-1", type=BlockType.ACTION, name="SendMessage",
+                      properties={"message": "VIP!"}, children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+        assert 'if (player == null || !player.hasPermission("myplugin.vip")) return;' in code
+        assert 'player.sendMessage("VIP!");' in code
+
+    def test_has_item_guard(self, generator, base_config):
+        """Test HasItem generates guard clause with material check."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="event-1", type=BlockType.EVENT, name="PlayerJoinEvent",
+                      properties={}, children=["cond-1"]),
+                Block(id="cond-1", type=BlockType.ACTION, name="HasItem",
+                      properties={"itemType": "DIAMOND_SWORD"}, children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+        assert "Material.DIAMOND_SWORD" in code
+        assert "!player.getInventory().contains" in code
+
+    def test_health_above_guard(self, generator, base_config):
+        """Test HealthAbove generates guard clause."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="event-1", type=BlockType.EVENT, name="PlayerJoinEvent",
+                      properties={}, children=["cond-1"]),
+                Block(id="cond-1", type=BlockType.ACTION, name="HealthAbove",
+                      properties={"health": "10.0"}, children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+        assert "player.getHealth() <= 10.0" in code
+
+    def test_health_below_guard(self, generator, base_config):
+        """Test HealthBelow generates guard clause."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="event-1", type=BlockType.EVENT, name="PlayerJoinEvent",
+                      properties={}, children=["cond-1"]),
+                Block(id="cond-1", type=BlockType.ACTION, name="HealthBelow",
+                      properties={"health": "5.0"}, children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+        assert "player.getHealth() >= 5.0" in code
+
+    def test_gamemode_equals_guard(self, generator, base_config):
+        """Test GameModeEquals generates guard clause and adds import."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="event-1", type=BlockType.EVENT, name="PlayerJoinEvent",
+                      properties={}, children=["cond-1"]),
+                Block(id="cond-1", type=BlockType.ACTION, name="GameModeEquals",
+                      properties={"gameMode": "CREATIVE"}, children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+        assert "GameMode.CREATIVE" in code
+        assert "import org.bukkit.GameMode;" in code
+
+    def test_is_sneaking_guard(self, generator, base_config):
+        """Test IsSneaking generates guard clause."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="event-1", type=BlockType.EVENT, name="PlayerJoinEvent",
+                      properties={}, children=["cond-1"]),
+                Block(id="cond-1", type=BlockType.ACTION, name="IsSneaking",
+                      properties={}, children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+        assert "!player.isSneaking()" in code
+
+    def test_is_op_guard(self, generator, base_config):
+        """Test IsOp generates guard clause."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="event-1", type=BlockType.EVENT, name="PlayerJoinEvent",
+                      properties={}, children=["cond-1"]),
+                Block(id="cond-1", type=BlockType.ACTION, name="IsOp",
+                      properties={}, children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+        assert "!player.isOp()" in code
+
+    def test_condition_before_action_order(self, generator, base_config):
+        """Test condition guard appears before the action code."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="event-1", type=BlockType.EVENT, name="PlayerJoinEvent",
+                      properties={}, children=["cond-1", "action-1"]),
+                Block(id="cond-1", type=BlockType.ACTION, name="HasPermission",
+                      properties={"permission": "test.perm"}, children=[]),
+                Block(id="action-1", type=BlockType.ACTION, name="SendMessage",
+                      properties={"message": "Hello"}, children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+        guard_pos = code.find("hasPermission")
+        msg_pos = code.find("sendMessage")
+        assert guard_pos < msg_pos
+
+
+class TestCommandEvent:
+    """Test CommandEvent code generation."""
+
+    def test_basic_command_class(self, generator, base_config):
+        """Test CommandEvent generates a command executor class."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="cmd-1", type=BlockType.EVENT, name="CommandEvent",
+                      properties={"commandName": "heal"}, children=["action-1"]),
+                Block(id="action-1", type=BlockType.ACTION, name="SendMessage",
+                      properties={"message": "You have been healed!"}, children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+
+        # Should generate a command class, not a listener
+        assert len(result["listeners"]) == 0
+        assert len(result["commands"]) == 1
+        assert "CommandHeal.java" in result["commands"]
+
+        code = result["commands"]["CommandHeal.java"]
+        assert "implements CommandExecutor, TabCompleter" in code
+        assert "onCommand(CommandSender sender, Command command, String label, String[] args)" in code
+        assert "sender instanceof Player" in code
+        assert "Player player = (Player) sender;" in code
+        assert 'player.sendMessage("You have been healed!");' in code
+        assert "onTabComplete(CommandSender sender, Command command, String alias, String[] args)" in code
+
+    def test_command_registered_in_main_class(self, generator, base_config):
+        """Test command is registered in main plugin class with null safety."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="cmd-1", type=BlockType.EVENT, name="CommandEvent",
+                      properties={"commandName": "heal"}, children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+        main = result["main_java"]
+
+        assert 'getCommand("heal") != null' in main
+        assert 'getCommand("heal").setExecutor' in main
+        assert 'getCommand("heal").setTabCompleter' in main
+        assert "CommandHeal()" in main
+
+    def test_command_in_plugin_yml(self, generator, base_config):
+        """Test command is declared in plugin.yml."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="cmd-1", type=BlockType.EVENT, name="CommandEvent",
+                      properties={
+                          "commandName": "heal",
+                          "commandDescription": "Heals the player",
+                          "commandUsage": "/heal",
+                          "commandPermission": "myplugin.heal",
+                          "commandAliases": "h,hp",
+                      }, children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+        yml = result["plugin_yml"]
+
+        assert "commands:" in yml
+        assert "  heal:" in yml
+        assert "description: Heals the player" in yml
+        assert "usage: /heal" in yml
+        assert "permission: myplugin.heal" in yml
+        assert "aliases: [h, hp]" in yml
+
+    def test_command_not_in_listeners(self, generator, base_config):
+        """Test CommandEvent blocks are excluded from listener generation."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="event-1", type=BlockType.EVENT, name="PlayerJoinEvent",
+                      properties={}, children=["action-1"]),
+                Block(id="action-1", type=BlockType.ACTION, name="SendMessage",
+                      properties={"message": "Hello"}, children=[]),
+                Block(id="cmd-1", type=BlockType.EVENT, name="CommandEvent",
+                      properties={"commandName": "test"}, children=["action-2"]),
+                Block(id="action-2", type=BlockType.ACTION, name="SendMessage",
+                      properties={"message": "Test command"}, children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+
+        # Only the PlayerJoinEvent should be a listener
+        assert len(result["listeners"]) == 1
+        assert "CommandEvent" not in list(result["listeners"].values())[0]
+        # Command should be separate
+        assert len(result["commands"]) == 1
+
+    def test_command_arg_placeholder_replaced(self, generator, base_config):
+        """Test %argN% placeholders are replaced with bounds-safe args access."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="cmd-1", type=BlockType.EVENT, name="CommandEvent",
+                      properties={"commandName": "greet"}, children=["action-1"]),
+                Block(id="action-1", type=BlockType.ACTION, name="SendMessage",
+                      properties={"message": "Hello %arg0%!"}, children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = result["commands"]["CommandGreet.java"]
+
+        # Should contain bounds-safe access
+        assert "args.length > 0 ? args[0]" in code
+        assert 'Hello " + (args.length > 0 ? args[0] : "")' in code
+
+    def test_arg_placeholder_ignored_in_listener(self, generator, base_config):
+        """Test %argN% placeholders are left as-is in listener context (no args variable)."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="event-1", type=BlockType.EVENT, name="PlayerJoinEvent",
+                      properties={}, children=["action-1"]),
+                Block(id="action-1", type=BlockType.ACTION, name="SendMessage",
+                      properties={"message": "Value: %arg0%"}, children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+
+        # %arg0% should remain as literal text, not be replaced
+        assert "%arg0%" in code
+        assert "args[" not in code
+
+    def test_cancel_event_skipped_in_command(self, generator, base_config):
+        """Test CancelEvent action is silently skipped in command context."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="cmd-1", type=BlockType.EVENT, name="CommandEvent",
+                      properties={"commandName": "test"}, children=["action-1"]),
+                Block(id="action-1", type=BlockType.ACTION, name="CancelEvent",
+                      properties={}, children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = result["commands"]["CommandTest.java"]
+
+        assert "setCancelled" not in code
+
+    def test_empty_command_name_skipped(self, generator, base_config):
+        """Test CommandEvent with empty name fails validation."""
+        with pytest.raises(Exception):
+            PluginConfig(
+                **base_config,
+                blocks=[
+                    Block(id="cmd-1", type=BlockType.EVENT, name="CommandEvent",
+                          properties={"commandName": ""}, children=["action-1"]),
+                    Block(id="action-1", type=BlockType.ACTION, name="SendMessage",
+                          properties={"message": "test"}, children=[]),
+                ],
+            )
+
+    def test_command_with_entity_actions(self, generator, base_config):
+        """Test CommandEvent with entity-targeting actions produces compilable code."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="cmd-1", type=BlockType.EVENT, name="CommandEvent",
+                      properties={"commandName": "smite"}, children=["action-1"]),
+                Block(id="action-1", type=BlockType.ACTION, name="DamageEntity",
+                      properties={"amount": "10.0"}, children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = result["commands"]["CommandSmite.java"]
+
+        # Should declare entity variables (player-based in command context)
+        assert "Entity targetEntity = player;" in code
+        assert "import org.bukkit.entity.Entity;" in code
+        # Should NOT reference event variable
+        assert "event instanceof" not in code
+
+    def test_command_with_block_actions(self, generator, base_config):
+        """Test CommandEvent with block-targeting actions produces compilable code."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="cmd-1", type=BlockType.EVENT, name="CommandEvent",
+                      properties={"commandName": "setblock"}, children=["action-1"]),
+                Block(id="action-1", type=BlockType.ACTION, name="SetBlockType",
+                      properties={"blockType": "DIAMOND_BLOCK"}, children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = result["commands"]["CommandSetblock.java"]
+
+        # Should declare block variable (player-based in command context)
+        assert "Block targetBlock = player.getLocation().getBlock();" in code
+        assert "import org.bukkit.block.Block;" in code
+        # Should NOT reference event variable
+        assert "event instanceof" not in code
+
+    def test_command_tab_completions_generated(self, generator, base_config):
+        """Test CommandEvent tab-completion suggestions generate a TabCompleter body."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="cmd-1",
+                    type=BlockType.EVENT,
+                    name="CommandEvent",
+                    properties={
+                        "commandName": "tools",
+                        "commandTabCompletions": "reload,status,help",
+                    },
+                    children=[],
+                ),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = result["commands"]["CommandTools.java"]
+
+        assert "Arrays.asList(\"reload\", \"status\", \"help\")" in code
+        assert "option.toLowerCase().startsWith(input)" in code
+        assert "return matches;" in code
+
+
 class TestPomXml:
     """Test pom.xml generation."""
 

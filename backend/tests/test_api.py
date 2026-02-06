@@ -245,6 +245,29 @@ class TestGeneratePluginEndpoint:
         response = client.post("/api/generate-plugin", json=payload)
         assert response.status_code != 422  # Not a validation error
 
+    def test_generate_plugin_invalid_command_name_validation(self, client):
+        """CommandEvent commandName should fail validation when format is invalid."""
+        payload = {
+            "name": "BadCommandPlugin",
+            "version": "1.0.0",
+            "main_package": "com.example.badcommand",
+            "description": "Plugin with invalid command name",
+            "author": "TestAuthor",
+            "blocks": [
+                {
+                    "id": "cmd-1",
+                    "type": "event",
+                    "name": "CommandEvent",
+                    "properties": {"commandName": "Bad Command"},
+                    "children": [],
+                    "custom_code": "",
+                }
+            ],
+        }
+
+        response = client.post("/api/generate-plugin", json=payload)
+        assert response.status_code == 422
+
     def test_generate_plugin_with_all_action_types(self, client):
         """Test plugin generation with all action types."""
         payload = {

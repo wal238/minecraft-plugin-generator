@@ -225,6 +225,22 @@ export const DEFAULT_BLOCKS = {
       properties: {},
       children: []
     },
+    {
+      type: 'event',
+      id: 'command-event',
+      name: 'CommandEvent',
+      description: 'Triggered when a player runs a custom command',
+      color: '#e74c3c',
+      properties: {
+        commandName: '',
+        commandDescription: '',
+        commandUsage: '/<command>',
+        commandPermission: '',
+        commandAliases: '',
+        commandTabCompletions: '',
+      },
+      children: []
+    },
   ],
   actions: [
     {
@@ -639,6 +655,114 @@ export const DEFAULT_BLOCKS = {
       description: 'Execute command as player',
       color: '#9b59b6',
       properties: { command: '' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'has-permission',
+      name: 'HasPermission',
+      description: 'Only run following actions if player has a specific permission',
+      color: '#f39c12',
+      properties: { permission: '' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'has-item',
+      name: 'HasItem',
+      description: 'Only run following actions if player has a specific item',
+      color: '#f39c12',
+      properties: { itemType: 'DIAMOND', amount: '1' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'health-above',
+      name: 'HealthAbove',
+      description: 'Only run following actions if player health is above a value',
+      color: '#f39c12',
+      properties: { health: '10' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'health-below',
+      name: 'HealthBelow',
+      description: 'Only run following actions if player health is below a value',
+      color: '#f39c12',
+      properties: { health: '5' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'gamemode-equals',
+      name: 'GameModeEquals',
+      description: 'Only run following actions if player is in a specific game mode',
+      color: '#f39c12',
+      properties: { gameMode: 'SURVIVAL' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'is-in-world',
+      name: 'IsInWorld',
+      description: 'Only run following actions if player is in a specific world',
+      color: '#f39c12',
+      properties: { world: 'world' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'is-sneaking',
+      name: 'IsSneaking',
+      description: 'Only run following actions if player is sneaking',
+      color: '#f39c12',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'is-flying',
+      name: 'IsFlying',
+      description: 'Only run following actions if player is flying',
+      color: '#f39c12',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'is-op',
+      name: 'IsOp',
+      description: 'Only run following actions if player is a server operator',
+      color: '#f39c12',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'hunger-above',
+      name: 'HungerAbove',
+      description: 'Only run following actions if player hunger is above a value',
+      color: '#f39c12',
+      properties: { hunger: '10' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'hunger-below',
+      name: 'HungerBelow',
+      description: 'Only run following actions if player hunger is below a value',
+      color: '#f39c12',
+      properties: { hunger: '5' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'level-above',
+      name: 'LevelAbove',
+      description: 'Only run following actions if player experience level is above a value',
+      color: '#f39c12',
+      properties: { level: '10' },
       children: []
     },
   ],
