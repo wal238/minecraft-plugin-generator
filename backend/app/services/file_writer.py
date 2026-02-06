@@ -25,6 +25,7 @@ class FileWriterService:
             {base_dir}/pom.xml
             {base_dir}/src/main/java/{package_path}/{MainClass}.java
             {base_dir}/src/main/java/{package_path}/listeners/*.java
+            {base_dir}/src/main/java/{package_path}/commands/*.java
             {base_dir}/src/main/resources/plugin.yml
         """
         package_path = config.main_package.replace(".", "/")
@@ -32,10 +33,12 @@ class FileWriterService:
         # Source directories
         java_dir = base_dir / "src" / "main" / "java" / package_path
         listeners_dir = java_dir / "listeners"
+        commands_dir = java_dir / "commands"
         resources_dir = base_dir / "src" / "main" / "resources"
 
         java_dir.mkdir(parents=True, exist_ok=True)
         listeners_dir.mkdir(parents=True, exist_ok=True)
+        commands_dir.mkdir(parents=True, exist_ok=True)
         resources_dir.mkdir(parents=True, exist_ok=True)
 
         # Write pom.xml
@@ -53,6 +56,12 @@ class FileWriterService:
             listener_path = listeners_dir / filename
             listener_path.write_text(code, encoding="utf-8")
             logger.info("Wrote %s", listener_path)
+
+        # Write command classes
+        for filename, code in files.get("commands", {}).items():
+            command_path = commands_dir / filename
+            command_path.write_text(code, encoding="utf-8")
+            logger.info("Wrote %s", command_path)
 
         # Write plugin.yml
         yml_path = resources_dir / "plugin.yml"

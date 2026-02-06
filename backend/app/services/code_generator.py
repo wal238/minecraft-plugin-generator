@@ -1,5 +1,6 @@
 """Generates Java source code from block configuration."""
 
+import re
 from typing import Any, Dict, List
 
 from app.models.block import Block, BlockType
@@ -99,6 +100,29 @@ WORLD_EVENT_NAMES: set = {
     "ThunderChangeEvent",
 }
 
+# Regex pattern for %argN% placeholders (N is a non-negative integer)
+_ARG_PLACEHOLDER_RE = re.compile(r"%arg(\d+)%")
+
+
+def _replace_arg_placeholders(java_str: str, is_command: bool = False) -> str:
+    """Replace %arg0%, %arg1%, ... with Java args[] array access.
+
+    Only performs replacement when is_command is True (i.e. inside a CommandEvent
+    context where the ``args`` variable exists). In listener context, %argN%
+    text is left as a harmless literal.
+
+    The input string is expected to be placed inside a Java string literal,
+    so the replacement breaks out of the string with concatenation, e.g.:
+        ``%arg0%`` -> ``" + (args.length > 0 ? args[0] : "") + "``
+    This mirrors how %player% is handled, with bounds safety added.
+    """
+    if not is_command:
+        return java_str
+    return _ARG_PLACEHOLDER_RE.sub(
+        lambda m: f'" + (args.length > {m.group(1)} ? args[{m.group(1)}] : "") + "',
+        java_str,
+    )
+
 
 class CodeGeneratorService:
     """Generates all Java source files for a Minecraft plugin."""
@@ -108,6 +132,7 @@ class CodeGeneratorService:
         return {
             "main_java": self.generate_main_plugin(config),
             "listeners": self.generate_listeners(config),
+            "commands": self.generate_commands(config),
             "plugin_yml": self.generate_plugin_yml(config),
             "pom_xml": self.generate_pom_xml(config),
         }
@@ -118,13 +143,39 @@ class CodeGeneratorService:
         class_name = config.main_class_name
         version = sanitize_java_string(config.version)
 
-        # Collect listener registrations
-        event_blocks = [b for b in config.blocks if b.type == BlockType.EVENT]
+        # Collect listener registrations (exclude CommandEvent blocks)
+        event_blocks = [
+            b for b in config.blocks
+            if b.type == BlockType.EVENT and b.name != "CommandEvent"
+        ]
         listener_registrations = ""
         for i, _ in enumerate(event_blocks):
             listener_registrations += (
                 f"        getServer().getPluginManager().registerEvents("
                 f"new {package}.listeners.EventListener{i}(), this);\n"
+            )
+
+        # Collect command registrations
+        command_blocks = [
+            b for b in config.blocks
+            if b.type == BlockType.EVENT and b.name == "CommandEvent"
+        ]
+        command_registrations = ""
+        for cmd_block in command_blocks:
+            cmd_name = cmd_block.properties.get("commandName", "").lower().strip()
+            if not cmd_name:
+                continue
+            cmd_class_name = "Command" + "".join(
+                part.capitalize() for part in cmd_name.replace("-", "_").split("_")
+            )
+            executor_var = f"{cmd_class_name[0].lower()}{cmd_class_name[1:]}Executor"
+            command_registrations += (
+                f'        if (getCommand("{cmd_name}") != null) {{\n'
+                f"            {package}.commands.{cmd_class_name} {executor_var} = "
+                f"new {package}.commands.{cmd_class_name}();\n"
+                f'            getCommand("{cmd_name}").setExecutor({executor_var});\n'
+                f'            getCommand("{cmd_name}").setTabCompleter({executor_var});\n'
+                f"        }}\n"
             )
 
         return f"""package {package};
@@ -138,7 +189,9 @@ public class {class_name} extends JavaPlugin {{
         getLogger().info("{class_name} v{version} enabled!");
 
         // Register listeners
-{listener_registrations}    }}
+{listener_registrations}
+        // Register commands
+{command_registrations}    }}
 
     @Override
     public void onDisable() {{
@@ -148,10 +201,14 @@ public class {class_name} extends JavaPlugin {{
 """
 
     def generate_listeners(self, config: PluginConfig) -> Dict[str, str]:
-        """Generate event listener classes. Returns {filename: java_code}."""
+        """Generate event listener classes. Returns {filename: java_code}.
+        CommandEvent blocks are excluded -- they produce command classes instead."""
         listeners: Dict[str, str] = {}
         blocks_by_id = {b.id: b for b in config.blocks}
-        event_blocks = [b for b in config.blocks if b.type == BlockType.EVENT]
+        event_blocks = [
+            b for b in config.blocks
+            if b.type == BlockType.EVENT and b.name != "CommandEvent"
+        ]
 
         for i, event_block in enumerate(event_blocks):
             # Gather child action blocks
@@ -193,7 +250,7 @@ public class {class_name} extends JavaPlugin {{
         action_names = {b.name for b in child_blocks if b.type == BlockType.ACTION}
         has_custom = any(b.type in (BlockType.CUSTOM_ACTION, BlockType.CUSTOM_CONDITION) for b in child_blocks)
 
-        needs_material = bool(action_names & {"GiveItem", "DropItem", "RemoveItem", "SetItemInHand", "SetBlockType", "FillRegion", "SetEntityEquipment"})
+        needs_material = bool(action_names & {"GiveItem", "DropItem", "RemoveItem", "SetItemInHand", "SetBlockType", "FillRegion", "SetEntityEquipment", "HasItem"})
         if needs_material:
             imports.append("org.bukkit.Material")
             imports.append("org.bukkit.inventory.ItemStack")
@@ -219,7 +276,7 @@ public class {class_name} extends JavaPlugin {{
             imports.append("org.bukkit.inventory.ItemStack")
         if has_custom:
             imports.append("org.bukkit.ChatColor")
-        if "SetGameMode" in action_names:
+        if "SetGameMode" in action_names or "GameModeEquals" in action_names:
             imports.append("org.bukkit.GameMode")
         if (
             "AddPotionEffect" in action_names
@@ -271,6 +328,209 @@ public class EventListener{index} implements Listener {{
 {player_line}{action_code}    }}
 }}
 """
+
+    def generate_commands(self, config: PluginConfig) -> Dict[str, str]:
+        """Generate command executor classes. Returns {filename: java_code}."""
+        commands: Dict[str, str] = {}
+        blocks_by_id = {b.id: b for b in config.blocks}
+        command_blocks = [
+            b for b in config.blocks
+            if b.type == BlockType.EVENT and b.name == "CommandEvent"
+        ]
+
+        for i, cmd_block in enumerate(command_blocks):
+            cmd_name_raw = cmd_block.properties.get("commandName", "").strip()
+            if not cmd_name_raw:
+                continue
+            child_blocks = [
+                blocks_by_id[cid]
+                for cid in cmd_block.children
+                if cid in blocks_by_id
+            ]
+            code, class_name, cmd_name = self._generate_command_class(
+                config.main_package, cmd_block, child_blocks, i
+            )
+            commands[f"{class_name}.java"] = code
+
+        return commands
+
+    def _generate_command_class(
+        self,
+        package: str,
+        cmd_block: Block,
+        child_blocks: List[Block],
+        index: int,
+    ) -> tuple:
+        """Generate a single command executor class.
+
+        Returns:
+            (java_code, class_name, command_name)
+        """
+        props = cmd_block.properties
+        cmd_name = props.get("commandName", "").lower().strip() or "mycommand"
+
+        # Build a proper class name from the command name
+        class_name = "Command" + "".join(
+            part.capitalize() for part in cmd_name.replace("-", "_").split("_")
+        )
+
+        # Generate action code (reuse existing method with "CommandEvent" context)
+        action_code = self._generate_action_code(child_blocks, "CommandEvent")
+
+        # Build imports
+        tab_completions_raw = props.get("commandTabCompletions", "")
+        tab_completions = [
+            sanitize_java_string(option.strip())
+            for option in str(tab_completions_raw).split(",")
+            if option.strip()
+        ]
+
+        imports = [
+            "org.bukkit.command.Command",
+            "org.bukkit.command.CommandExecutor",
+            "org.bukkit.command.CommandSender",
+            "org.bukkit.command.TabCompleter",
+            "org.bukkit.entity.Player",
+            "java.util.Collections",
+            "java.util.List",
+        ]
+        if tab_completions:
+            imports.append("java.util.ArrayList")
+            imports.append("java.util.Arrays")
+
+        # Add action-specific imports (same logic as listener generation)
+        action_names = {b.name for b in child_blocks if b.type == BlockType.ACTION}
+        has_custom = any(
+            b.type in (BlockType.CUSTOM_ACTION, BlockType.CUSTOM_CONDITION)
+            for b in child_blocks
+        )
+
+        needs_material = bool(
+            action_names
+            & {
+                "GiveItem", "DropItem", "RemoveItem", "SetItemInHand",
+                "SetBlockType", "FillRegion", "SetEntityEquipment", "HasItem",
+            }
+        )
+        if needs_material:
+            imports.append("org.bukkit.Material")
+            imports.append("org.bukkit.inventory.ItemStack")
+        if (
+            "BroadcastMessage" in action_names
+            or "ConsoleLog" in action_names
+            or "SendConsoleMessage" in action_names
+            or "TeleportPlayer" in action_names
+            or "TeleportEntity" in action_names
+            or "ExecuteCommand" in action_names
+            or "ExecuteConsoleCommand" in action_names
+            or "ExecuteCommandAsPlayer" in action_names
+            or has_custom
+        ):
+            imports.append("org.bukkit.Bukkit")
+        if "PlaySound" in action_names:
+            imports.append("org.bukkit.Sound")
+        if "TeleportPlayer" in action_names or "SetVelocity" in action_names or "TeleportEntity" in action_names:
+            imports.append("org.bukkit.Location")
+        if "SetVelocity" in action_names or "SetEntityVelocity" in action_names:
+            imports.append("org.bukkit.util.Vector")
+        if "DropItem" in action_names:
+            imports.append("org.bukkit.inventory.ItemStack")
+        if has_custom:
+            imports.append("org.bukkit.ChatColor")
+        if "SetGameMode" in action_names or "GameModeEquals" in action_names:
+            imports.append("org.bukkit.GameMode")
+        if (
+            "AddPotionEffect" in action_names
+            or "ApplyPotionEffect" in action_names
+            or "RemovePotionEffect" in action_names
+            or "ApplyEntityPotionEffect" in action_names
+        ):
+            imports.append("org.bukkit.potion.PotionEffect")
+            imports.append("org.bukkit.potion.PotionEffectType")
+        if "SpawnParticle" in action_names or "SpawnParticles" in action_names:
+            imports.append("org.bukkit.Particle")
+        if "SpawnEntity" in action_names:
+            imports.append("org.bukkit.entity.EntityType")
+        if "GrantPermission" in action_names or "SetMetadata" in action_names:
+            imports.append("org.bukkit.plugin.java.JavaPlugin")
+            imports.append("org.bukkit.metadata.FixedMetadataValue")
+        # Entity/Living/Block imports for commands (player-based simplified context)
+        needs_entity = bool(action_names & {
+            "DamageEntity", "SetEntityHealth", "TeleportEntity", "SetEntityVelocity",
+            "ApplyEntityPotionEffect", "SetEntityOnFire", "SetEntityCustomName",
+            "SetEntityEquipment", "SetTime", "SetWeather", "SetThunder",
+            "SpawnEntity", "StrikeLightning", "StrikeWithLightning",
+            "CreateExplosion", "SpawnParticle", "SpawnParticles", "FillRegion",
+        })
+        needs_living = bool(action_names & {
+            "SetEntityHealth", "ApplyEntityPotionEffect", "SetEntityOnFire",
+            "SetEntityCustomName", "SetEntityEquipment",
+        })
+        needs_block = bool(action_names & {
+            "SetBlockType", "RemoveBlock", "FillRegion", "SetTime", "SetWeather",
+            "SetThunder", "SpawnEntity", "StrikeLightning", "StrikeWithLightning",
+            "CreateExplosion", "SpawnParticle", "SpawnParticles",
+        })
+        if needs_entity:
+            imports.append("org.bukkit.entity.Entity")
+        if needs_living:
+            imports.append("org.bukkit.entity.LivingEntity")
+        if needs_block:
+            imports.append("org.bukkit.block.Block")
+
+        import_lines = "\n".join(f"import {imp};" for imp in sorted(set(imports)))
+
+        tab_completions_code = ""
+        if tab_completions:
+            values = ", ".join(f'"{value}"' for value in tab_completions)
+            tab_completions_code = f"""
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {{
+        if (args.length > 1) {{
+            return Collections.emptyList();
+        }}
+        List<String> suggestions = Arrays.asList({values});
+        String input = args.length == 0 ? "" : args[0].toLowerCase();
+        List<String> matches = new ArrayList<>();
+        for (String option : suggestions) {{
+            if (option.toLowerCase().startsWith(input)) {{
+                matches.add(option);
+            }}
+        }}
+        return matches;
+    }}
+"""
+        else:
+            tab_completions_code = """
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        return Collections.emptyList();
+    }
+"""
+
+        code = f"""package {package}.commands;
+
+{import_lines}
+
+public class {class_name} implements CommandExecutor, TabCompleter {{
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {{
+        if (!(sender instanceof Player)) {{
+            sender.sendMessage("This command can only be used by players.");
+            return true;
+        }}
+        Player player = (Player) sender;
+
+{action_code}
+        return true;
+    }}
+{tab_completions_code}
+}}
+"""
+        return code, class_name, cmd_name
 
     def _generate_action_code(self, blocks: List[Block], event_name: str = "") -> str:
         """Generate Java code for a list of action blocks."""
@@ -370,11 +630,14 @@ public class EventListener{index} implements Listener {{
         )
         needs_plugin = bool(action_names & {"GrantPermission", "SetMetadata"})
 
+        is_command = event_name == "CommandEvent"
+
         if needs_plugin:
             lines.append("        JavaPlugin plugin = JavaPlugin.getProvidingPlugin(getClass());")
-        if player_required_actions:
+        if player_required_actions and not is_command:
+            # In command context the player is always set (checked before calling actions)
             lines.append("        if (player == null) return;")
-        if needs_entity:
+        if needs_entity and not is_command:
             lines.append("        boolean hasEventEntity = event instanceof EntityEvent;")
             lines.append("        Entity targetEntity = null;")
             lines.append("        if (hasEventEntity) {")
@@ -382,11 +645,17 @@ public class EventListener{index} implements Listener {{
             lines.append("        } else if (player != null) {")
             lines.append("            targetEntity = player;")
             lines.append("        }")
-        if needs_living:
+        elif needs_entity and is_command:
+            # In command context, player is always set — use as the entity source
+            lines.append("        boolean hasEventEntity = true;")
+            lines.append("        Entity targetEntity = player;")
+        if needs_living and not is_command:
             lines.append(
                 "        LivingEntity living = (targetEntity instanceof LivingEntity) ? (LivingEntity) targetEntity : null;"
             )
-        if needs_block:
+        elif needs_living and is_command:
+            lines.append("        LivingEntity living = player;")
+        if needs_block and not is_command:
             lines.append("        boolean hasEventBlock = event instanceof BlockEvent;")
             lines.append("        Block targetBlock = null;")
             lines.append("        if (hasEventBlock) {")
@@ -394,6 +663,10 @@ public class EventListener{index} implements Listener {{
             lines.append("        } else if (player != null) {")
             lines.append("            targetBlock = player.getLocation().getBlock();")
             lines.append("        }")
+        elif needs_block and is_command:
+            # In command context, use the block at the player's location
+            lines.append("        boolean hasEventBlock = true;")
+            lines.append("        Block targetBlock = player.getLocation().getBlock();")
 
         for block in blocks:
             if block.type == BlockType.ACTION:
@@ -402,16 +675,19 @@ public class EventListener{index} implements Listener {{
                     msg = sanitize_java_string(props.get("message", "Hello!"))
                     if "%player%" in msg:
                         msg = msg.replace("%player%", '" + player.getName() + "')
+                    msg = _replace_arg_placeholders(msg, is_command)
                     lines.append(f'        player.sendMessage("{msg}");')
                 elif block.name == "BroadcastMessage":
                     msg = sanitize_java_string(props.get("message", ""))
                     if "%player%" in msg:
                         msg = msg.replace("%player%", '" + player.getName() + "')
+                    msg = _replace_arg_placeholders(msg, is_command)
                     lines.append(f'        Bukkit.broadcastMessage("{msg}");')
                 elif block.name == "SendConsoleMessage":
                     msg = sanitize_java_string(props.get("message", ""))
                     if "%player%" in msg:
                         msg = msg.replace("%player%", '" + player.getName() + "')
+                    msg = _replace_arg_placeholders(msg, is_command)
                     lines.append(f'        Bukkit.getConsoleSender().sendMessage("{msg}");')
                 elif block.name == "GiveItem":
                     item_type = sanitize_java_string(props.get("itemType", "DIAMOND")).upper()
@@ -450,7 +726,8 @@ public class EventListener{index} implements Listener {{
                     saturation = props.get("saturation", "5.0")
                     lines.append(f"        player.setSaturation({saturation});")
                 elif block.name == "CancelEvent":
-                    lines.append("        event.setCancelled(true);")
+                    if not is_command:
+                        lines.append("        event.setCancelled(true);")
                 elif block.name == "PlaySound":
                     sound = sanitize_java_string(props.get("sound", "ENTITY_EXPERIENCE_ORB_PICKUP"))
                     volume = props.get("volume", "1.0")
@@ -496,6 +773,7 @@ public class EventListener{index} implements Listener {{
                     msg = sanitize_java_string(props.get("message", ""))
                     if "%player%" in msg:
                         msg = msg.replace("%player%", '" + player.getName() + "')
+                    msg = _replace_arg_placeholders(msg, is_command)
                     lines.append(f'        Bukkit.getLogger().info("{msg}");')
                 elif block.name == "DropItem":
                     item_type = sanitize_java_string(props.get("itemType", "DIAMOND")).upper()
@@ -527,6 +805,7 @@ public class EventListener{index} implements Listener {{
                     msg = sanitize_java_string(props.get("message", ""))
                     if "%player%" in msg:
                         msg = msg.replace("%player%", '" + player.getName() + "')
+                    msg = _replace_arg_placeholders(msg, is_command)
                     lines.append(f'        player.sendActionBar("{msg}");')
                 elif block.name == "SpawnParticle" or block.name == "SpawnParticles":
                     particle = sanitize_java_string(props.get("particle", "HEART")).upper()
@@ -615,11 +894,13 @@ public class EventListener{index} implements Listener {{
                     command = sanitize_java_string(props.get("command", ""))
                     if "%player%" in command:
                         command = command.replace("%player%", '" + player.getName() + "')
+                    command = _replace_arg_placeholders(command, is_command)
                     lines.append(f'        player.performCommand("{command}");')
                 elif block.name == "ExecuteConsoleCommand":
                     command = sanitize_java_string(props.get("command", ""))
                     if "%player%" in command:
                         command = command.replace("%player%", '" + player.getName() + "')
+                    command = _replace_arg_placeholders(command, is_command)
                     lines.append(
                         f'        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "{command}");'
                     )
@@ -1096,6 +1377,42 @@ public class EventListener{index} implements Listener {{
                             f"            living.getEquipment().setItemInOffHand(new ItemStack(Material.{off_hand}, 1));"
                         )
                     lines.append("        }")
+                # Condition blocks (guard clauses)
+                elif block.name == "HasPermission":
+                    perm = sanitize_java_string(props.get("permission", ""))
+                    if perm:
+                        lines.append(f'        if (player == null || !player.hasPermission("{perm}")) return;')
+                elif block.name == "HasItem":
+                    item_type = sanitize_java_string(props.get("itemType", "DIAMOND")).upper()
+                    amount = props.get("amount", "1")
+                    lines.append(f'        if (player == null || !player.getInventory().contains(Material.{item_type}, {amount})) return;')
+                elif block.name == "HealthAbove":
+                    health = props.get("health", "10")
+                    lines.append(f'        if (player == null || player.getHealth() <= {health}) return;')
+                elif block.name == "HealthBelow":
+                    health = props.get("health", "5")
+                    lines.append(f'        if (player == null || player.getHealth() >= {health}) return;')
+                elif block.name == "GameModeEquals":
+                    game_mode = sanitize_java_string(props.get("gameMode", "SURVIVAL")).upper()
+                    lines.append(f'        if (player == null || player.getGameMode() != org.bukkit.GameMode.{game_mode}) return;')
+                elif block.name == "IsInWorld":
+                    world = sanitize_java_string(props.get("world", "world"))
+                    lines.append(f'        if (player == null || !player.getWorld().getName().equals("{world}")) return;')
+                elif block.name == "IsSneaking":
+                    lines.append('        if (player == null || !player.isSneaking()) return;')
+                elif block.name == "IsFlying":
+                    lines.append('        if (player == null || !player.isFlying()) return;')
+                elif block.name == "IsOp":
+                    lines.append('        if (player == null || !player.isOp()) return;')
+                elif block.name == "HungerAbove":
+                    hunger = props.get("hunger", "10")
+                    lines.append(f'        if (player == null || player.getFoodLevel() <= {hunger}) return;')
+                elif block.name == "HungerBelow":
+                    hunger = props.get("hunger", "5")
+                    lines.append(f'        if (player == null || player.getFoodLevel() >= {hunger}) return;')
+                elif block.name == "LevelAbove":
+                    level = props.get("level", "10")
+                    lines.append(f'        if (player == null || player.getLevel() <= {level}) return;')
             elif block.type == BlockType.CUSTOM_CONDITION:
                 code = block.custom_code or "true"
                 lines.append(f"        if ({code}) {{")
@@ -1110,7 +1427,7 @@ public class EventListener{index} implements Listener {{
 
     def generate_plugin_yml(self, config: PluginConfig) -> str:
         """Generate the plugin.yml manifest file."""
-        return (
+        yml = (
             f"name: {config.main_class_name}\n"
             f"version: {config.version}\n"
             f"main: {config.main_package}.{config.main_class_name}\n"
@@ -1118,6 +1435,36 @@ public class EventListener{index} implements Listener {{
             f"authors:\n"
             f"  - {config.author}\n"
         )
+
+        # Add commands section if any CommandEvent blocks with valid names exist
+        command_blocks = [
+            b for b in config.blocks
+            if b.type == BlockType.EVENT and b.name == "CommandEvent"
+            and b.properties.get("commandName", "").strip()
+        ]
+        if command_blocks:
+            yml += "commands:\n"
+            for cmd_block in command_blocks:
+                props = cmd_block.properties
+                cmd_name = props.get("commandName", "").lower().strip()
+                description = props.get("commandDescription", "")
+                usage = props.get("commandUsage", f"/{cmd_name}")
+                permission = props.get("commandPermission", "")
+                aliases_str = props.get("commandAliases", "")
+
+                yml += f"  {cmd_name}:\n"
+                if description:
+                    yml += f"    description: {description}\n"
+                if usage:
+                    yml += f"    usage: {usage}\n"
+                if permission:
+                    yml += f"    permission: {permission}\n"
+                if aliases_str:
+                    aliases = [a.strip() for a in aliases_str.split(",") if a.strip()]
+                    if aliases:
+                        yml += f"    aliases: [{', '.join(aliases)}]\n"
+
+        return yml
 
     def generate_pom_xml(self, config: PluginConfig) -> str:
         """Generate Maven pom.xml with Paper API dependency."""

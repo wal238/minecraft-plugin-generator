@@ -528,4 +528,43 @@ export const ACTION_FIELDS = {
     { name: 'key', label: 'Key', type: 'text', placeholder: 'key' },
     { name: 'value', label: 'Value', type: 'text', placeholder: 'value' },
   ],
+  HasPermission: [
+    { name: 'permission', label: 'Permission Node', type: 'text', placeholder: 'myplugin.admin' },
+  ],
+  HasItem: [
+    { name: 'itemType', label: 'Item', type: 'grouped-select', options: ITEM_OPTIONS },
+    { name: 'amount', label: 'Minimum Amount', type: 'number', min: 1, max: 64, default: '1' },
+  ],
+  HealthAbove: [
+    { name: 'health', label: 'Health Threshold', type: 'slider', min: 0, max: 20, step: 0.5, default: '10', hint: '20 = full health (10 hearts)' },
+  ],
+  HealthBelow: [
+    { name: 'health', label: 'Health Threshold', type: 'slider', min: 0, max: 20, step: 0.5, default: '5', hint: '20 = full health (10 hearts)' },
+  ],
+  GameModeEquals: [
+    { name: 'gameMode', label: 'Game Mode', type: 'select', options: GAME_MODE_OPTIONS, default: 'SURVIVAL' },
+  ],
+  IsInWorld: [
+    { name: 'world', label: 'World Name', type: 'text', placeholder: 'world' },
+  ],
+  IsSneaking: [],
+  IsFlying: [],
+  IsOp: [],
+  HungerAbove: [
+    { name: 'hunger', label: 'Hunger Threshold', type: 'slider', min: 0, max: 20, step: 1, default: '10', hint: '20 = full hunger bar' },
+  ],
+  HungerBelow: [
+    { name: 'hunger', label: 'Hunger Threshold', type: 'slider', min: 0, max: 20, step: 1, default: '5', hint: '20 = full hunger bar' },
+  ],
+  LevelAbove: [
+    { name: 'level', label: 'Level Threshold', type: 'number', min: 0, max: 1000, default: '10' },
+  ],
+  CommandEvent: [
+    { name: 'commandName', label: 'Command Name', type: 'text', placeholder: 'mycommand (without the /)', required: true },
+    { name: 'commandDescription', label: 'Description', type: 'text', placeholder: 'What does this command do?' },
+    { name: 'commandUsage', label: 'Usage', type: 'text', placeholder: '/<command> [args]' },
+    { name: 'commandPermission', label: 'Permission', type: 'text', placeholder: 'myplugin.mycommand (leave empty for no permission)' },
+    { name: 'commandAliases', label: 'Aliases', type: 'text', placeholder: 'Comma-separated aliases, e.g. mc,mycmd' },
+    { name: 'commandTabCompletions', label: 'Tab Completions', type: 'text', placeholder: 'Comma-separated suggestions, e.g. reload,status,help' },
+  ],
 };
