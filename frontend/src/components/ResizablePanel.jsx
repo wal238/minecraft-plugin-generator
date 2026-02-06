@@ -4,7 +4,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
  * A panel that can be resized by dragging its left edge.
  * Used for the editor panel to allow more space for code editing.
  */
-export default function ResizablePanel({ children, minWidth = 280, maxWidth = 800, defaultWidth = 350 }) {
+export default function ResizablePanel({ children, minWidth = 280, maxWidth = 800, defaultWidth = 350, ...rest }) {
   const [width, setWidth] = useState(defaultWidth);
   const [isResizing, setIsResizing] = useState(false);
   const panelRef = useRef(null);
@@ -50,6 +50,7 @@ export default function ResizablePanel({ children, minWidth = 280, maxWidth = 80
       ref={panelRef}
       className="editor-panel resizable-panel"
       style={{ width: `${width}px` }}
+      {...rest}
     >
       <div
         className={`resize-handle ${isResizing ? 'active' : ''}`}

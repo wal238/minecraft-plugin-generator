@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import usePluginStore from './store/usePluginStore';
 import { apiService } from './services/api';
 import PluginSettings from './components/PluginSettings';
@@ -7,6 +7,7 @@ import Canvas from './components/Canvas';
 import BlockEditor from './components/BlockEditor';
 import ResizablePanel from './components/ResizablePanel';
 import CodePreviewModal from './components/CodePreviewModal';
+import WelcomeTour from './components/WelcomeTour';
 import { validateBlocks, normalizeBlockDefinition } from './utils/blockSchema';
 import { validatePluginSettings } from './utils/pluginValidation';
 import { DEFAULT_BLOCKS, TEMPLATES } from './services/blockDefinitions';
@@ -38,6 +39,7 @@ export default function App() {
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [quickAddSelection, setQuickAddSelection] = useState('');
   const [templateSelection, setTemplateSelection] = useState('');
+  const tourStartRef = useRef(null);
 
   const FAVORITES_KEY = 'mpb-favorites';
   const RECENTS_KEY = 'mpb-recents';
@@ -284,13 +286,23 @@ export default function App() {
     <div className="app">
       <header className="header">
         <div className="header-title">Minecraft Plugin Builder</div>
-        <div className="header-controls">
+        <button
+          type="button"
+          className="header-help-btn"
+          onClick={() => tourStartRef.current?.()}
+          title="Show guided tour"
+          aria-label="Help"
+        >
+          ?
+        </button>
+        <div className="header-controls" data-tour="header-toolbar">
           <input
             type="text"
             className="header-search"
             placeholder="Search blocks and templates..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            data-tour="header-search"
           />
           <label className="header-toggle">
             <input
@@ -311,6 +323,7 @@ export default function App() {
           <select
             className="header-select header-select-compact"
             value={quickAddSelection}
+            data-tour="header-quick-add"
             onChange={(e) => {
               const value = e.target.value;
               setQuickAddSelection(value);
@@ -356,28 +369,32 @@ export default function App() {
               </option>
             ))}
           </select>
-          <button
-            className="preview-btn"
-            onClick={handlePreview}
-            disabled={loading || previewLoading || hasSettingsErrors}
-            title={hasSettingsErrors ? 'Fix plugin settings to continue.' : undefined}
-          >
-            {previewLoading ? 'Loading...' : 'Preview'}
-          </button>
-          <button
-            className="generate-btn"
-            onClick={handleGenerate}
-            disabled={loading || previewLoading || hasSettingsErrors}
-            title={hasSettingsErrors ? 'Fix plugin settings to continue.' : undefined}
-          >
-            {loading ? 'Generating...' : 'Generate'}
-          </button>
+          <span data-tour="preview-generate" style={{ display: 'contents' }}>
+            <button
+              className="preview-btn"
+              onClick={handlePreview}
+              disabled={loading || previewLoading || hasSettingsErrors}
+              title={hasSettingsErrors ? 'Fix plugin settings to continue.' : undefined}
+            >
+              {previewLoading ? 'Loading...' : 'Preview'}
+            </button>
+            <button
+              className="generate-btn"
+              onClick={handleGenerate}
+              disabled={loading || previewLoading || hasSettingsErrors}
+              title={hasSettingsErrors ? 'Fix plugin settings to continue.' : undefined}
+            >
+              {loading ? 'Generating...' : 'Generate'}
+            </button>
+          </span>
           {(loading || previewLoading) && <div className="spinner" />}
         </div>
       </header>
       <div className="content">
         <aside className="sidebar">
-          <PluginSettings />
+          <div data-tour="plugin-settings">
+            <PluginSettings />
+          </div>
           <BlockPalette
             search={search}
             favorites={favorites}
@@ -387,11 +404,11 @@ export default function App() {
             onAddRecent={addRecent}
           />
         </aside>
-        <main className="main-area">
+        <main className="main-area" data-tour="canvas">
           <Canvas />
         </main>
         {selectedBlockId && (
-          <ResizablePanel minWidth={300} maxWidth={800} defaultWidth={380}>
+          <ResizablePanel minWidth={300} maxWidth={800} defaultWidth={380} data-tour="block-editor">
             <BlockEditor />
           </ResizablePanel>
         )}
@@ -407,6 +424,8 @@ export default function App() {
           onClose={() => setPreviewFiles(null)}
         />
       )}
+
+      <WelcomeTour onRequestStart={(fn) => { tourStartRef.current = fn; }} />
     </div>
   );
 }
