@@ -176,7 +176,7 @@ export default function BlockPalette({
       )}
 
       {/* Guided Recipes */}
-      <div className="palette-section">
+      <div className="palette-section" data-tour="templates">
         <div className="palette-section-header">
           <span className="palette-section-icon palette-icon-templates"></span>
           Guided Recipes
@@ -217,7 +217,7 @@ export default function BlockPalette({
       </div>
 
       {/* Events */}
-      <div className="palette-section">
+      <div className="palette-section" data-tour="palette-events">
         <div className="palette-section-header">
           <span className="palette-section-icon palette-icon-events"></span>
           Events
@@ -236,7 +236,7 @@ export default function BlockPalette({
       </div>
 
       {/* Actions */}
-      <div className="palette-section">
+      <div className="palette-section" data-tour="palette-actions">
         <div className="palette-section-header">
           <span className="palette-section-icon palette-icon-actions"></span>
           Actions

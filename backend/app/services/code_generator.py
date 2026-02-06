@@ -174,9 +174,8 @@ public class {class_name} extends JavaPlugin {{
             event_import,
         ]
 
-        # Only import Player if we actually have access to one
-        if not has_no_player or player_accessor != "null":
-            imports.append("org.bukkit.entity.Player")
+        # Player is declared in all listeners for consistent action generation.
+        imports.append("org.bukkit.entity.Player")
 
         action_names = {b.name for b in child_blocks if b.type == BlockType.ACTION}
         has_custom = any(b.type in (BlockType.CUSTOM_ACTION, BlockType.CUSTOM_CONDITION) for b in child_blocks)
@@ -297,13 +296,6 @@ public class EventListener{index} implements Listener {{
             "ExecuteCommandAsPlayer",
             "ExecuteConsoleCommand",
             "KickPlayer",
-            "SetTime",
-            "SetWeather",
-            "SetThunder",
-            "SpawnEntity",
-            "StrikeLightning",
-            "StrikeWithLightning",
-            "CreateExplosion",
             "SetGlowing",
             "SetInvisible",
             "SetCustomName",
@@ -311,7 +303,6 @@ public class EventListener{index} implements Listener {{
             "SetOnFire",
             "GrantPermission",
             "SetMetadata",
-            "FillRegion",
         }
 
         needs_entity = bool(
@@ -531,37 +522,82 @@ public class EventListener{index} implements Listener {{
                     lines.append(f'        player.kickPlayer("{reason}");')
                 elif block.name == "SetTime":
                     time = props.get("time", "6000")
-                    lines.append(f"        player.getWorld().setTime({time});")
+                    if event_name in {"WeatherChangeEvent", "ThunderChangeEvent"}:
+                        lines.append(f"        event.getWorld().setTime({time});")
+                    else:
+                        lines.append("        if (player != null) {")
+                        lines.append(f"            player.getWorld().setTime({time});")
+                        lines.append("        }")
                 elif block.name == "SetWeather":
                     storm = props.get("storm", "false").lower()
                     duration = props.get("duration", "6000")
-                    lines.append(f"        player.getWorld().setStorm({storm});")
-                    lines.append(f"        player.getWorld().setWeatherDuration({duration});")
+                    if event_name in {"WeatherChangeEvent", "ThunderChangeEvent"}:
+                        lines.append(f"        event.getWorld().setStorm({storm});")
+                        lines.append(f"        event.getWorld().setWeatherDuration({duration});")
+                    else:
+                        lines.append("        if (player != null) {")
+                        lines.append(f"            player.getWorld().setStorm({storm});")
+                        lines.append(f"            player.getWorld().setWeatherDuration({duration});")
+                        lines.append("        }")
                 elif block.name == "SetThunder":
                     thunder = props.get("thunder", "false").lower()
                     duration = props.get("duration", "6000")
-                    lines.append(f"        player.getWorld().setThundering({thunder});")
-                    lines.append(f"        player.getWorld().setThunderDuration({duration});")
+                    if event_name in {"WeatherChangeEvent", "ThunderChangeEvent"}:
+                        lines.append(f"        event.getWorld().setThundering({thunder});")
+                        lines.append(f"        event.getWorld().setThunderDuration({duration});")
+                    else:
+                        lines.append("        if (player != null) {")
+                        lines.append(f"            player.getWorld().setThundering({thunder});")
+                        lines.append(f"            player.getWorld().setThunderDuration({duration});")
+                        lines.append("        }")
                 elif block.name == "SpawnEntity":
                     entity_type = sanitize_java_string(props.get("entityType", "ZOMBIE")).upper()
-                    lines.append(
-                        f"        player.getWorld().spawnEntity("
-                        f"player.getLocation(), EntityType.{entity_type});"
-                    )
+                    if event_name in {"WeatherChangeEvent", "ThunderChangeEvent"}:
+                        lines.append(
+                            f"        event.getWorld().spawnEntity("
+                            f"event.getWorld().getSpawnLocation(), EntityType.{entity_type});"
+                        )
+                    else:
+                        lines.append("        if (player != null) {")
+                        lines.append(
+                            f"            player.getWorld().spawnEntity("
+                            f"player.getLocation(), EntityType.{entity_type});"
+                        )
+                        lines.append("        }")
                 elif block.name == "StrikeLightning" or block.name == "StrikeWithLightning":
                     damage = props.get("damage", "true").lower()
-                    if damage == "true":
-                        lines.append("        player.getWorld().strikeLightning(player.getLocation());")
+                    if event_name in {"WeatherChangeEvent", "ThunderChangeEvent"}:
+                        if damage == "true":
+                            lines.append(
+                                "        event.getWorld().strikeLightning(event.getWorld().getSpawnLocation());"
+                            )
+                        else:
+                            lines.append(
+                                "        event.getWorld().strikeLightningEffect(event.getWorld().getSpawnLocation());"
+                            )
                     else:
-                        lines.append("        player.getWorld().strikeLightningEffect(player.getLocation());")
+                        lines.append("        if (player != null) {")
+                        if damage == "true":
+                            lines.append("            player.getWorld().strikeLightning(player.getLocation());")
+                        else:
+                            lines.append("            player.getWorld().strikeLightningEffect(player.getLocation());")
+                        lines.append("        }")
                 elif block.name == "CreateExplosion":
                     power = props.get("power", "4.0")
                     fire = props.get("fire", "false").lower()
                     break_blocks = props.get("breakBlocks", "false").lower()
-                    lines.append(
-                        f"        player.getWorld().createExplosion("
-                        f"player.getLocation(), {power}f, {fire}, {break_blocks});"
-                    )
+                    if event_name in {"WeatherChangeEvent", "ThunderChangeEvent"}:
+                        lines.append(
+                            f"        event.getWorld().createExplosion("
+                            f"event.getWorld().getSpawnLocation(), {power}f, {fire}, {break_blocks});"
+                        )
+                    else:
+                        lines.append("        if (player != null) {")
+                        lines.append(
+                            f"            player.getWorld().createExplosion("
+                            f"player.getLocation(), {power}f, {fire}, {break_blocks});"
+                        )
+                        lines.append("        }")
                 elif block.name == "SetBlockType":
                     block_type = sanitize_java_string(props.get("blockType", "STONE")).upper()
                     lines.append("        if (targetBlock != null) {")
@@ -579,15 +615,38 @@ public class EventListener{index} implements Listener {{
                     y2 = props.get("y2", "70")
                     z2 = props.get("z2", "10")
                     block_type = sanitize_java_string(props.get("blockType", "STONE")).upper()
-                    lines.append(f"        for (int x = {x1}; x <= {x2}; x++) {{")
-                    lines.append(f"            for (int y = {y1}; y <= {y2}; y++) {{")
-                    lines.append(f"                for (int z = {z1}; z <= {z2}; z++) {{")
-                    lines.append(
-                        f"                    (targetBlock != null ? targetBlock.getWorld() : player.getWorld()).getBlockAt(x, y, z).setType(Material.{block_type});"
-                    )
-                    lines.append("                }")
-                    lines.append("            }")
-                    lines.append("        }")
+                    if event_name in {"WeatherChangeEvent", "ThunderChangeEvent"}:
+                        lines.append(f"        for (int x = {x1}; x <= {x2}; x++) {{")
+                        lines.append(f"            for (int y = {y1}; y <= {y2}; y++) {{")
+                        lines.append(f"                for (int z = {z1}; z <= {z2}; z++) {{")
+                        lines.append(
+                            f"                    event.getWorld().getBlockAt(x, y, z).setType(Material.{block_type});"
+                        )
+                        lines.append("                }")
+                        lines.append("            }")
+                        lines.append("        }")
+                    elif event_name in {"BlockBreakEvent", "BlockPlaceEvent", "BlockBurnEvent", "BlockIgniteEvent", "BlockGrowEvent"}:
+                        lines.append(f"        for (int x = {x1}; x <= {x2}; x++) {{")
+                        lines.append(f"            for (int y = {y1}; y <= {y2}; y++) {{")
+                        lines.append(f"                for (int z = {z1}; z <= {z2}; z++) {{")
+                        lines.append(
+                            f"                    event.getBlock().getWorld().getBlockAt(x, y, z).setType(Material.{block_type});"
+                        )
+                        lines.append("                }")
+                        lines.append("            }")
+                        lines.append("        }")
+                    else:
+                        lines.append("        if (player != null) {")
+                        lines.append(f"            for (int x = {x1}; x <= {x2}; x++) {{")
+                        lines.append(f"                for (int y = {y1}; y <= {y2}; y++) {{")
+                        lines.append(f"                    for (int z = {z1}; z <= {z2}; z++) {{")
+                        lines.append(
+                            f"                        player.getWorld().getBlockAt(x, y, z).setType(Material.{block_type});"
+                        )
+                        lines.append("                    }")
+                        lines.append("                }")
+                        lines.append("            }")
+                        lines.append("        }")
                 elif block.name == "SetGlowing":
                     glowing = props.get("glowing", "true").lower()
                     lines.append(f"        player.setGlowing({glowing});")

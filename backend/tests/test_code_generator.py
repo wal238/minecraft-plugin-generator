@@ -800,6 +800,38 @@ class TestMainPluginClass:
         assert "new com.example.testplugin.listeners.EventListener0()" in main_java
 
 
+class TestWorldEventActionGeneration:
+    """Regression tests for world actions in non-player events."""
+
+    def test_weather_change_spawn_entity_does_not_require_player(self, generator, base_config):
+        """Weather/Thunder events should generate world-based spawn code."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="event-1",
+                    type=BlockType.EVENT,
+                    name="WeatherChangeEvent",
+                    properties={},
+                    children=["action-1"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="SpawnEntity",
+                    properties={"entityType": "AXOLOTL"},
+                    children=[],
+                ),
+            ],
+        )
+
+        result = generator.generate_all(config)
+        listener_code = list(result["listeners"].values())[0]
+
+        assert "if (player == null) return;" not in listener_code
+        assert "event.getWorld().spawnEntity(event.getWorld().getSpawnLocation(), EntityType.AXOLOTL);" in listener_code
+
+
 class TestPomXml:
     """Test pom.xml generation."""
 
