@@ -66,6 +66,12 @@ export default function BlockNode({
     });
   };
 
+  const getToneClass = (type) => {
+    if (type === 'event') return 'block-tone-event';
+    if (type === 'action') return 'block-tone-action';
+    return 'block-tone-custom';
+  };
+
   const renderBlock = (b, isChild = false) => {
     const propertyEntries = Object.entries(b.properties || {}).filter(
       ([, v]) => v !== ''
@@ -78,8 +84,7 @@ export default function BlockNode({
 
     return (
       <div
-        className={`block-node ${selected ? 'block-node-selected' : ''} ${isChild ? 'block-node-child' : ''}`}
-        style={{ borderLeftColor: b.color }}
+        className={`block-node ${getToneClass(b.type)} ${selected ? 'block-node-selected' : ''} ${isChild ? 'block-node-child' : ''}`}
         onClick={(e) => {
           e.stopPropagation();
           onSelect(b.id);
@@ -165,7 +170,7 @@ export default function BlockNode({
             </button>
           </div>
         )}
-        <span className="block-node-badge" style={{ backgroundColor: b.color }}>
+        <span className="block-node-badge">
           {b.type}
         </span>
         {missingRequired && (

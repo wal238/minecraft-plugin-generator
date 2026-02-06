@@ -15,6 +15,7 @@ const usePluginStore = create((set) => ({
   successMessage: null,
 
   availableBlocks: null,
+  worldOptions: [],
 
   setName: (name) => set({ name }),
   setVersion: (version) => set({ version }),
@@ -74,6 +75,7 @@ const usePluginStore = create((set) => ({
   setError: (error) => set({ error }),
   setSuccessMessage: (successMessage) => set({ successMessage }),
   setAvailableBlocks: (availableBlocks) => set({ availableBlocks }),
+  setWorldOptions: (worldOptions) => set({ worldOptions }),
 
   reset: () =>
     set({
@@ -86,7 +88,8 @@ const usePluginStore = create((set) => ({
       selectedBlockId: null,
       loading: false,
       error: null,
-      successMessage: null
+      successMessage: null,
+      worldOptions: []
     })
 }));
 

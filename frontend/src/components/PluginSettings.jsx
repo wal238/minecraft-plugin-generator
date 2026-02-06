@@ -24,6 +24,7 @@ export default function PluginSettings() {
   const setDescription = usePluginStore((s) => s.setDescription);
   const setAuthor = usePluginStore((s) => s.setAuthor);
   const [mainPackageTouched, setMainPackageTouched] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
     const shouldAutofill = !mainPackageTouched && (!mainPackage || mainPackage === 'com.example.myplugin');
@@ -45,11 +46,25 @@ export default function PluginSettings() {
 
   return (
     <div className="plugin-settings">
-      <h3 className="settings-title">
-        Plugin Settings
+      <div className="settings-title">
+        <div className="settings-title-row">
+          <span>Plugin Settings</span>
+          <button
+            type="button"
+            className="settings-collapse-btn"
+            onClick={() => setCollapsed((v) => !v)}
+            aria-expanded={!collapsed}
+          >
+            {collapsed ? 'Show' : 'Hide'}
+          </button>
+        </div>
         <span className="settings-subtitle">Configure your Minecraft plugin</span>
-      </h3>
+      </div>
 
+      {collapsed ? (
+        <div className="settings-collapsed-note">Settings hidden</div>
+      ) : (
+        <>
       <div className="form-group">
         <label className="form-label" htmlFor="plugin-name">
           Plugin Name <span className="form-required">*</span>
@@ -145,6 +160,8 @@ export default function PluginSettings() {
         />
         {errors.author && <span className="form-hint form-hint-error">{errors.author}</span>}
       </div>
+        </>
+      )}
     </div>
   );
 }

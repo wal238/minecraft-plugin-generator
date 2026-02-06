@@ -25,6 +25,11 @@ export const apiService = {
     return response.data;
   },
 
+  async getWorlds() {
+    const response = await axiosInstance.get('/worlds');
+    return response.data;
+  },
+
   downloadPlugin(downloadId) {
     window.open(`${API_URL}/download/${downloadId}`, '_blank');
   }

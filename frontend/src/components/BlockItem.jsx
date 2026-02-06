@@ -66,14 +66,19 @@ const BLOCK_HELP = {
 
 function BlockItem({ block, onDragStart, isFavorite = false, onToggleFavorite }) {
   const helpText = BLOCK_HELP[block.name] || block.description;
+  const toneClass =
+    block.type === 'event'
+      ? 'block-tone-event'
+      : block.type === 'action'
+        ? 'block-tone-action'
+        : 'block-tone-custom';
 
   return (
     <Tooltip text={helpText} position="right">
       <div
-        className="block-item"
+        className={`block-item ${toneClass}`}
         draggable
         onDragStart={(e) => onDragStart(e, block)}
-        style={{ borderLeftColor: block.color }}
       >
         {onToggleFavorite && (
           <button

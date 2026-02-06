@@ -202,6 +202,44 @@ export const PARTICLE_OPTIONS = {
 };
 
 // ============================================
+// ENTITIES - Used by SpawnEntity
+// ============================================
+export const ENTITY_OPTIONS = {
+  PASSIVE: [
+    'ALLAY', 'ARMADILLO', 'AXOLOTL', 'BAT', 'BEE', 'CAMEL', 'CAT', 'CHICKEN', 'COD', 'COW',
+    'DONKEY', 'FOX', 'FROG', 'GLOW_SQUID', 'GOAT', 'HORSE', 'IRON_GOLEM', 'LLAMA', 'MOOSHROOM',
+    'MULE', 'OCELOT', 'PANDA', 'PARROT', 'PIG', 'POLAR_BEAR', 'PUFFERFISH', 'RABBIT', 'SALMON',
+    'SHEEP', 'SKELETON_HORSE', 'SNIFFER', 'SNOW_GOLEM', 'SQUID', 'STRIDER', 'TADPOLE', 'TRADER_LLAMA',
+    'TROPICAL_FISH', 'TURTLE', 'VILLAGER', 'WANDERING_TRADER', 'WOLF',
+  ],
+  HOSTILE: [
+    'BLAZE', 'BOGGED', 'BREEZE', 'CAVE_SPIDER', 'CREEPER', 'DROWNED', 'ELDER_GUARDIAN', 'ENDERMAN',
+    'ENDERMITE', 'EVOKER', 'GHAST', 'GUARDIAN', 'HOGLIN', 'HUSK', 'MAGMA_CUBE', 'PHANTOM', 'PIGLIN',
+    'PIGLIN_BRUTE', 'PILLAGER', 'RAVAGER', 'SHULKER', 'SILVERFISH', 'SKELETON', 'SLIME', 'SPIDER',
+    'STRAY', 'VEX', 'VINDICATOR', 'WARDEN', 'WITCH', 'WITHER_SKELETON', 'ZOGLIN', 'ZOMBIE',
+    'ZOMBIE_VILLAGER', 'ZOMBIFIED_PIGLIN',
+  ],
+  BOSSES: [
+    'ENDER_DRAGON', 'WITHER',
+  ],
+  UTILITY: [
+    'ARMOR_STAND', 'BLOCK_DISPLAY', 'CHEST_BOAT', 'COMMAND_BLOCK_MINECART', 'FALLING_BLOCK',
+    'FURNACE_MINECART', 'GLOW_ITEM_FRAME', 'HOPPER_MINECART', 'INTERACTION', 'ITEM_DISPLAY',
+    'ITEM_FRAME', 'LEASH_KNOT', 'MARKER', 'MINECART', 'PAINTING', 'SPAWNER_MINECART',
+    'TNT_MINECART', 'TEXT_DISPLAY',
+  ],
+};
+
+// ============================================
+// WORLDS - Fallback if backend world fetch fails
+// ============================================
+export const WORLD_FALLBACK_OPTIONS = [
+  { value: 'world', label: 'world' },
+  { value: 'world_nether', label: 'world_nether' },
+  { value: 'world_the_end', label: 'world_the_end' },
+];
+
+// ============================================
 // GAME MODES - Used by SetGameMode
 // ============================================
 export const GAME_MODE_OPTIONS = [
@@ -229,6 +267,14 @@ export const TIME_PRESETS = [
 export const BOOLEAN_OPTIONS = [
   { value: 'true', label: 'On' },
   { value: 'false', label: 'Off' },
+];
+
+// ============================================
+// HAND OPTIONS - Used by SetItemInHand
+// ============================================
+export const HAND_OPTIONS = [
+  { value: 'MAIN_HAND', label: 'Main Hand' },
+  { value: 'OFF_HAND', label: 'Off Hand' },
 ];
 
 // ============================================
@@ -262,6 +308,9 @@ export const ACTION_FIELDS = {
   SendMessage: [
     { name: 'message', label: 'Message', type: 'text', placeholder: 'Enter message... (use %player% for name)' },
   ],
+  SendConsoleMessage: [
+    { name: 'message', label: 'Message', type: 'text', placeholder: 'Console message...' },
+  ],
   BroadcastMessage: [
     { name: 'message', label: 'Message', type: 'text', placeholder: 'Broadcast to all players...' },
   ],
@@ -273,11 +322,22 @@ export const ACTION_FIELDS = {
     { name: 'itemType', label: 'Item', type: 'grouped-select', options: ITEM_OPTIONS },
     { name: 'amount', label: 'Amount', type: 'number', min: 1, max: 64, default: '1' },
   ],
+  RemoveItem: [
+    { name: 'itemType', label: 'Item', type: 'grouped-select', options: ITEM_OPTIONS },
+    { name: 'amount', label: 'Amount', type: 'number', min: 1, max: 64, default: '1' },
+  ],
+  SetItemInHand: [
+    { name: 'itemType', label: 'Item', type: 'grouped-select', options: ITEM_OPTIONS },
+    { name: 'hand', label: 'Hand', type: 'select', options: HAND_OPTIONS, default: 'MAIN_HAND' },
+  ],
   SetHealth: [
     { name: 'health', label: 'Health', type: 'slider', min: 0, max: 20, step: 0.5, default: '20', hint: '20 = full health (10 hearts)' },
   ],
   SetHunger: [
     { name: 'hunger', label: 'Hunger', type: 'slider', min: 0, max: 20, step: 1, default: '20', hint: '20 = full hunger' },
+  ],
+  SetSaturation: [
+    { name: 'saturation', label: 'Saturation', type: 'slider', min: 0, max: 20, step: 0.5, default: '5', hint: 'Prevents hunger decay' },
   ],
   PlaySound: [
     { name: 'sound', label: 'Sound', type: 'grouped-select', options: SOUND_OPTIONS },
@@ -288,9 +348,15 @@ export const ACTION_FIELDS = {
     { name: 'x', label: 'X', type: 'number', default: '0' },
     { name: 'y', label: 'Y', type: 'number', min: -64, max: 320, default: '64' },
     { name: 'z', label: 'Z', type: 'number', default: '0' },
+    { name: 'world', label: 'World', type: 'select', optionsKey: 'worlds', options: WORLD_FALLBACK_OPTIONS },
+    { name: 'yaw', label: 'Yaw', type: 'number', placeholder: '0 (optional)' },
+    { name: 'pitch', label: 'Pitch', type: 'number', placeholder: '0 (optional)' },
   ],
   AddExperience: [
     { name: 'amount', label: 'XP Amount', type: 'number', min: 1, max: 100000, default: '10' },
+  ],
+  SetLevel: [
+    { name: 'level', label: 'Level', type: 'number', min: 0, max: 10000, default: '10' },
   ],
   SetExperienceLevel: [
     { name: 'level', label: 'Level', type: 'number', min: 0, max: 1000, default: '10' },
@@ -317,6 +383,11 @@ export const ACTION_FIELDS = {
     { name: 'duration', label: 'Duration', type: 'number', min: 1, max: 99999, default: '200', hint: 'ticks (20 = 1 second)' },
     { name: 'amplifier', label: 'Level', type: 'select', options: AMPLIFIER_OPTIONS, default: '0' },
   ],
+  ApplyPotionEffect: [
+    { name: 'effectType', label: 'Effect', type: 'grouped-select', options: POTION_EFFECT_OPTIONS },
+    { name: 'duration', label: 'Duration', type: 'number', min: 1, max: 99999, default: '200', hint: 'ticks (20 = 1 second)' },
+    { name: 'amplifier', label: 'Level', type: 'select', options: AMPLIFIER_OPTIONS, default: '0' },
+  ],
   RemovePotionEffect: [
     { name: 'effectType', label: 'Effect', type: 'grouped-select', options: POTION_EFFECT_OPTIONS },
   ],
@@ -328,13 +399,64 @@ export const ACTION_FIELDS = {
   SpawnParticle: [
     { name: 'particle', label: 'Particle', type: 'grouped-select', options: PARTICLE_OPTIONS },
     { name: 'count', label: 'Count', type: 'number', min: 1, max: 1000, default: '10' },
+    { name: 'offsetX', label: 'Offset X', type: 'number', min: 0, max: 10, step: 0.1, default: '0' },
+    { name: 'offsetY', label: 'Offset Y', type: 'number', min: 0, max: 10, step: 0.1, default: '0' },
+    { name: 'offsetZ', label: 'Offset Z', type: 'number', min: 0, max: 10, step: 0.1, default: '0' },
+    { name: 'speed', label: 'Speed', type: 'number', min: 0, max: 10, step: 0.1, default: '0' },
+  ],
+  SpawnParticles: [
+    { name: 'particle', label: 'Particle', type: 'grouped-select', options: PARTICLE_OPTIONS },
+    { name: 'count', label: 'Count', type: 'number', min: 1, max: 1000, default: '10' },
+    { name: 'offsetX', label: 'Offset X', type: 'number', min: 0, max: 10, step: 0.1, default: '0' },
+    { name: 'offsetY', label: 'Offset Y', type: 'number', min: 0, max: 10, step: 0.1, default: '0' },
+    { name: 'offsetZ', label: 'Offset Z', type: 'number', min: 0, max: 10, step: 0.1, default: '0' },
+    { name: 'speed', label: 'Speed', type: 'number', min: 0, max: 10, step: 0.1, default: '0' },
   ],
   KillPlayer: [],
   DamagePlayer: [
     { name: 'amount', label: 'Damage', type: 'number', min: 0.5, max: 100, step: 0.5, default: '5', hint: '2 = 1 heart' },
   ],
+  DamageEntity: [
+    { name: 'amount', label: 'Damage', type: 'number', min: 0.5, max: 100, step: 0.5, default: '5' },
+  ],
+  SetEntityHealth: [
+    { name: 'health', label: 'Health', type: 'slider', min: 0, max: 40, step: 0.5, default: '20' },
+  ],
+  TeleportEntity: [
+    { name: 'x', label: 'X', type: 'number', default: '0' },
+    { name: 'y', label: 'Y', type: 'number', min: -64, max: 320, default: '64' },
+    { name: 'z', label: 'Z', type: 'number', default: '0' },
+    { name: 'world', label: 'World', type: 'select', optionsKey: 'worlds', options: WORLD_FALLBACK_OPTIONS },
+  ],
+  SetEntityVelocity: [
+    { name: 'x', label: 'X Velocity', type: 'number', min: -10, max: 10, step: 0.1, default: '0' },
+    { name: 'y', label: 'Y Velocity', type: 'number', min: -10, max: 10, step: 0.1, default: '1' },
+    { name: 'z', label: 'Z Velocity', type: 'number', min: -10, max: 10, step: 0.1, default: '0' },
+  ],
+  ApplyEntityPotionEffect: [
+    { name: 'effectType', label: 'Effect', type: 'grouped-select', options: POTION_EFFECT_OPTIONS },
+    { name: 'duration', label: 'Duration', type: 'number', min: 1, max: 99999, default: '200', hint: 'ticks (20 = 1 second)' },
+    { name: 'amplifier', label: 'Level', type: 'select', options: AMPLIFIER_OPTIONS, default: '0' },
+  ],
+  SetEntityOnFire: [
+    { name: 'ticks', label: 'Duration', type: 'number', min: 1, max: 32767, default: '100', hint: 'ticks (20 = 1 second)' },
+  ],
+  SetEntityCustomName: [
+    { name: 'name', label: 'Name', type: 'text', placeholder: 'Entity name' },
+  ],
+  SetEntityEquipment: [
+    { name: 'helmet', label: 'Helmet', type: 'grouped-select', options: ITEM_OPTIONS },
+    { name: 'chestplate', label: 'Chestplate', type: 'grouped-select', options: ITEM_OPTIONS },
+    { name: 'leggings', label: 'Leggings', type: 'grouped-select', options: ITEM_OPTIONS },
+    { name: 'boots', label: 'Boots', type: 'grouped-select', options: ITEM_OPTIONS },
+    { name: 'mainHand', label: 'Main Hand', type: 'grouped-select', options: ITEM_OPTIONS },
+    { name: 'offHand', label: 'Off Hand', type: 'grouped-select', options: ITEM_OPTIONS },
+  ],
   ClearInventory: [],
   ExecuteCommand: [
+    { name: 'command', label: 'Command', type: 'text', placeholder: 'Command without / (use %player%)' },
+  ],
+  ExecuteCommandAsPlayer: [
     { name: 'command', label: 'Command', type: 'text', placeholder: 'Command without / (use %player%)' },
   ],
   ExecuteConsoleCommand: [
@@ -350,13 +472,36 @@ export const ACTION_FIELDS = {
     { name: 'storm', label: 'Storm', type: 'select', options: BOOLEAN_OPTIONS, default: 'false' },
     { name: 'duration', label: 'Duration', type: 'number', min: 1, max: 999999, default: '6000', hint: 'ticks' },
   ],
+  SetThunder: [
+    { name: 'thunder', label: 'Thunder', type: 'select', options: BOOLEAN_OPTIONS, default: 'false' },
+    { name: 'duration', label: 'Duration', type: 'number', min: 1, max: 999999, default: '6000', hint: 'ticks' },
+  ],
+  SpawnEntity: [
+    { name: 'entityType', label: 'Entity Type', type: 'grouped-select', options: ENTITY_OPTIONS },
+  ],
   StrikeLightning: [
+    { name: 'damage', label: 'Deal Damage', type: 'select', options: BOOLEAN_OPTIONS, default: 'true' },
+  ],
+  StrikeWithLightning: [
     { name: 'damage', label: 'Deal Damage', type: 'select', options: BOOLEAN_OPTIONS, default: 'true' },
   ],
   CreateExplosion: [
     { name: 'power', label: 'Power', type: 'slider', min: 0, max: 10, step: 0.5, default: '4', hint: 'TNT = 4' },
     { name: 'fire', label: 'Set Fire', type: 'select', options: BOOLEAN_OPTIONS, default: 'false' },
     { name: 'breakBlocks', label: 'Break Blocks', type: 'select', options: BOOLEAN_OPTIONS, default: 'false' },
+  ],
+  SetBlockType: [
+    { name: 'blockType', label: 'Block Type', type: 'grouped-select', options: ITEM_OPTIONS },
+  ],
+  RemoveBlock: [],
+  FillRegion: [
+    { name: 'x1', label: 'X1', type: 'number', default: '0' },
+    { name: 'y1', label: 'Y1', type: 'number', default: '64' },
+    { name: 'z1', label: 'Z1', type: 'number', default: '0' },
+    { name: 'x2', label: 'X2', type: 'number', default: '10' },
+    { name: 'y2', label: 'Y2', type: 'number', default: '70' },
+    { name: 'z2', label: 'Z2', type: 'number', default: '10' },
+    { name: 'blockType', label: 'Block Type', type: 'grouped-select', options: ITEM_OPTIONS },
   ],
   SetGlowing: [
     { name: 'glowing', label: 'Glowing', type: 'select', options: BOOLEAN_OPTIONS, default: 'true' },
@@ -367,8 +512,20 @@ export const ACTION_FIELDS = {
   AllowFlight: [
     { name: 'allow', label: 'Allow Flight', type: 'select', options: BOOLEAN_OPTIONS, default: 'true' },
     { name: 'startFlying', label: 'Start Flying', type: 'select', options: BOOLEAN_OPTIONS, default: 'false' },
+    { name: 'speed', label: 'Speed', type: 'number', min: 0.1, max: 1.0, step: 0.1, default: '0.2' },
   ],
   SetOnFire: [
     { name: 'ticks', label: 'Duration', type: 'number', min: 1, max: 32767, default: '100', hint: 'ticks (20 = 1 second)' },
+  ],
+  SetCustomName: [
+    { name: 'name', label: 'Name', type: 'text', placeholder: 'Player name tag' },
+  ],
+  GrantPermission: [
+    { name: 'permission', label: 'Permission', type: 'text', placeholder: 'vip.commands' },
+    { name: 'value', label: 'Value', type: 'select', options: BOOLEAN_OPTIONS, default: 'true' },
+  ],
+  SetMetadata: [
+    { name: 'key', label: 'Key', type: 'text', placeholder: 'key' },
+    { name: 'value', label: 'Value', type: 'text', placeholder: 'value' },
   ],
 };

@@ -126,6 +126,8 @@ export default function BlockEditor() {
   const blocks = usePluginStore((state) => state.blocks);
   const selectedBlockId = usePluginStore((state) => state.selectedBlockId);
   const updateBlock = usePluginStore((state) => state.updateBlock);
+  const setSelectedBlockId = usePluginStore((state) => state.setSelectedBlockId);
+  const worldOptions = usePluginStore((state) => state.worldOptions);
 
   const block = blocks.find((b) => b.id === selectedBlockId);
   if (!block) return null;
@@ -169,6 +171,23 @@ export default function BlockEditor() {
     : '';
 
   const fieldsToRender = useMemo(() => getFieldDefs(block.definition), [block.definition]);
+  const resolvedFields = useMemo(
+    () =>
+      fieldsToRender.map((field) => {
+        if (field.optionsKey === 'worlds') {
+          const mappedWorlds = (worldOptions || []).map((world) => ({
+            value: world,
+            label: world
+          }));
+          return {
+            ...field,
+            options: mappedWorlds.length > 0 ? mappedWorlds : field.options || []
+          };
+        }
+        return field;
+      }),
+    [fieldsToRender, worldOptions]
+  );
 
   const snippetOptions = useMemo(
     () => [
@@ -191,16 +210,65 @@ export default function BlockEditor() {
     setLocalCode(code);
   };
 
+  const toneClass =
+    block.type === 'event'
+      ? 'block-tone-event'
+      : block.type === 'action'
+        ? 'block-tone-action'
+        : 'block-tone-custom';
+
+  const childBlocks = useMemo(() => {
+    if (block.type !== 'event') return [];
+    const blockMap = new Map(blocks.map((item) => [item.id, item]));
+    return (block.children || [])
+      .map((childId) => blockMap.get(childId))
+      .filter(Boolean);
+  }, [block, blocks]);
+
+  const toHumanLabel = (value) =>
+    String(value).replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+
+  const resolveFieldLabelValue = (field, rawValue) => {
+    const value = formatValue(rawValue);
+    if (value === null) return null;
+    const options = field?.options;
+    if (!options) return value;
+
+    if (Array.isArray(options)) {
+      const match = options.find((opt) => {
+        if (typeof opt === 'string') return opt === value;
+        return String(opt.value) === value;
+      });
+      if (match && typeof match === 'object') return match.label || value;
+      if (typeof match === 'string') return toHumanLabel(match);
+      return value;
+    }
+
+    if (typeof options === 'object') {
+      for (const groupItems of Object.values(options)) {
+        const found = (groupItems || []).find((item) => item === value);
+        if (found) return toHumanLabel(found);
+      }
+    }
+    return value;
+  };
+
+  const formatValue = (value) => {
+    if (value === null || value === undefined || value === '') return null;
+    if (typeof value === 'boolean') return value ? 'true' : 'false';
+    return String(value);
+  };
+
   return (
     <div className="block-editor">
       <h3 className="block-editor-title">Edit Block</h3>
       <div className="block-editor-name">{block.name}</div>
-      <span className="block-node-badge" style={{ backgroundColor: block.color, marginBottom: 16, display: 'inline-block' }}>
+      <span className={`block-node-badge ${toneClass}`} style={{ marginBottom: 16, display: 'inline-block' }}>
         {block.type}
       </span>
 
       {/* Render fields */}
-      {fieldsToRender.map((field) => (
+      {resolvedFields.map((field) => (
         <div key={field.name} className="form-group">
           <label className="form-label" htmlFor={`prop-${field.name}`}>
             {field.label || field.name}
@@ -218,6 +286,60 @@ export default function BlockEditor() {
       {block.type === 'action' && fieldsToRender.length === 0 && (
         <div className="block-editor-no-fields">
           This action has no configurable properties.
+        </div>
+      )}
+
+      {block.type === 'event' && (
+        <div className="event-children-panel">
+          <div className="event-children-header">Event Actions</div>
+          {childBlocks.length === 0 ? (
+            <div className="block-editor-no-fields">
+              No child actions or conditions linked to this event yet.
+            </div>
+          ) : (
+            <div className="event-children-list">
+              {childBlocks.map((child) => {
+                const fieldDefs = getFieldDefs(child.definition || {});
+                const fieldByName = Object.fromEntries(fieldDefs.map((field) => [field.name, field]));
+                const propertyRows = Object.entries(child.properties || {})
+                  .map(([key, value]) => {
+                    const field = fieldByName[key];
+                    const displayKey = field?.label || key;
+                    const displayValue = resolveFieldLabelValue(field, value);
+                    return [displayKey, displayValue];
+                  })
+                  .filter(([, value]) => value !== null);
+
+                return (
+                  <button
+                    key={child.id}
+                    type="button"
+                    className="event-child-card"
+                    onClick={() => setSelectedBlockId(child.id)}
+                  >
+                    <div className="event-child-card-top">
+                      <span className="event-child-name">{child.name}</span>
+                      <span className="event-child-type">{child.type}</span>
+                    </div>
+                    {propertyRows.length > 0 ? (
+                      <div className="event-child-properties">
+                        {propertyRows.map(([key, value]) => (
+                          <span key={`${child.id}-${key}`} className="event-child-property">
+                            {key}: {value}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="event-child-empty">No configurable values</div>
+                    )}
+                    {child.customCode && (
+                      <div className="event-child-custom">Includes custom code</div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

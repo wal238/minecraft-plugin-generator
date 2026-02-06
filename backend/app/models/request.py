@@ -31,3 +31,9 @@ class PreviewResponse(BaseModel):
     """Response for code preview."""
     status: str
     files: Dict[str, str]  # filename -> content
+
+
+class WorldsResponse(BaseModel):
+    """Response for available world names."""
+    status: str
+    worlds: List[str]

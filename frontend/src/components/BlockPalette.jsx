@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import usePluginStore from '../store/usePluginStore';
 import { apiService } from '../services/api';
 import { DEFAULT_BLOCKS, TEMPLATES } from '../services/blockDefinitions';
@@ -8,18 +8,18 @@ import { useBlocks } from '../hooks/useBlocks';
 import BlockItem from './BlockItem';
 import Tooltip from './Tooltip';
 
-export default function BlockPalette() {
+export default function BlockPalette({
+  search,
+  favorites,
+  recents,
+  favoritesOnly,
+  onToggleFavorite,
+  onAddRecent,
+}) {
   const availableBlocks = usePluginStore((state) => state.availableBlocks);
   const setAvailableBlocks = usePluginStore((state) => state.setAvailableBlocks);
   const { handleDragStart } = useDragDrop();
   const { addTemplate } = useBlocks();
-  const [search, setSearch] = useState('');
-  const [favorites, setFavorites] = useState([]);
-  const [recents, setRecents] = useState([]);
-  const [favoritesOnly, setFavoritesOnly] = useState(false);
-
-  const FAVORITES_KEY = 'mpb-favorites';
-  const RECENTS_KEY = 'mpb-recents';
 
   useEffect(() => {
     async function fetchBlocks() {
@@ -60,26 +60,6 @@ export default function BlockPalette() {
     [availableBlocks, defaultBlocks]
   );
 
-  useEffect(() => {
-    try {
-      const storedFavs = JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]');
-      const storedRecents = JSON.parse(localStorage.getItem(RECENTS_KEY) || '[]');
-      if (Array.isArray(storedFavs)) setFavorites(storedFavs);
-      if (Array.isArray(storedRecents)) setRecents(storedRecents);
-    } catch {
-      setFavorites([]);
-      setRecents([]);
-    }
-  }, []);
-
-  const persistList = useCallback((key, list) => {
-    try {
-      localStorage.setItem(key, JSON.stringify(list));
-    } catch {
-      // ignore storage errors
-    }
-  }, []);
-
   const allBlocksById = useMemo(() => {
     const map = new Map();
     for (const block of [...blocks.events, ...blocks.actions, ...blocks.custom_options]) {
@@ -88,40 +68,12 @@ export default function BlockPalette() {
     return map;
   }, [blocks.actions, blocks.custom_options, blocks.events]);
 
-  const onToggleFavorite = useCallback(
-    (block) => {
-      setFavorites((prev) => {
-        const exists = prev.includes(block.id);
-        const next = exists ? prev.filter((id) => id !== block.id) : [block.id, ...prev];
-        persistList(FAVORITES_KEY, next);
-        return next;
-      });
-    },
-    [persistList]
-  );
-
-  const addRecent = useCallback(
-    (block) => {
-      setRecents((prev) => {
-        const next = [block.id, ...prev.filter((id) => id !== block.id)].slice(0, 8);
-        persistList(RECENTS_KEY, next);
-        return next;
-      });
-    },
-    [persistList]
-  );
-
-  const clearRecents = useCallback(() => {
-    setRecents([]);
-    persistList(RECENTS_KEY, []);
-  }, [persistList]);
-
   const onDragStart = useCallback(
     (e, block) => {
-      addRecent(block);
+      onAddRecent?.(block);
       handleDragStart(e, block);
     },
-    [addRecent, handleDragStart]
+    [handleDragStart, onAddRecent]
   );
 
   const onUseTemplate = useCallback(
@@ -185,31 +137,6 @@ export default function BlockPalette() {
         Block Palette
         <span className="palette-subtitle">Drag blocks to the canvas</span>
       </h3>
-
-      <div className="palette-search">
-        <input
-          type="text"
-          className="form-input palette-search-input"
-          placeholder="Search events, actions, and custom blocks..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <div className="palette-search-actions">
-          <label className="palette-toggle">
-            <input
-              type="checkbox"
-              checked={favoritesOnly}
-              onChange={(e) => setFavoritesOnly(e.target.checked)}
-            />
-            Show favorites only
-          </label>
-          {recents.length > 0 && (
-            <button type="button" className="palette-clear-btn" onClick={clearRecents}>
-              Clear recents
-            </button>
-          )}
-        </div>
-      </div>
 
       {(favoriteBlocks.length > 0 || recentBlocks.length > 0) && (
         <div className="palette-section">
