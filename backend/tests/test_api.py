@@ -1,15 +1,37 @@
 """Tests for the API endpoints."""
 
+import asyncio
+
+import httpx
 import pytest
-from starlette.testclient import TestClient
 from app.main import app
 
 
 @pytest.fixture
 def client():
     """Create a test client for the API."""
-    with TestClient(app) as c:
-        yield c
+    transport = httpx.ASGITransport(app=app)
+
+    class SyncASGIClient:
+        def get(self, url, **kwargs):
+            async def _call():
+                async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as c:
+                    return await c.get(url, **kwargs)
+            return asyncio.run(_call())
+
+        def post(self, url, **kwargs):
+            async def _call():
+                async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as c:
+                    return await c.post(url, **kwargs)
+            return asyncio.run(_call())
+
+        def options(self, url, **kwargs):
+            async def _call():
+                async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as c:
+                    return await c.options(url, **kwargs)
+            return asyncio.run(_call())
+
+    yield SyncASGIClient()
 
 
 class TestHealthEndpoint:

@@ -435,7 +435,7 @@ class TestTeleportPlayerAction:
         result = generator.generate_all(config)
         listener_code = list(result["listeners"].values())[0]
 
-        assert "player.teleport(new Location(player.getWorld(), 100, 64, -50));" in listener_code
+        assert "player.teleport(new Location(player.getWorld(), 100, 64, -50, 0f, 0f));" in listener_code
         assert "import org.bukkit.Location;" in listener_code
 
 

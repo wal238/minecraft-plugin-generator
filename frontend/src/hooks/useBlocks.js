@@ -1,4 +1,5 @@
 import usePluginStore from '../store/usePluginStore';
+import { getDefaultProperties } from '../utils/blockSchema';
 
 export function useBlocks() {
   const addBlock = usePluginStore((state) => state.addBlock);
@@ -6,27 +7,22 @@ export function useBlocks() {
   const deleteBlock = usePluginStore((state) => state.deleteBlock);
   const addChildBlock = usePluginStore((state) => state.addChildBlock);
   const removeChildBlock = usePluginStore((state) => state.removeChildBlock);
+  const reorderChildBlocks = usePluginStore((state) => state.reorderChildBlocks);
   const blocks = usePluginStore((state) => state.blocks);
 
   const createBlock = (definition) => {
-    // Convert properties array (from API) to object format
-    // API format: [{name: 'message', type: 'string', ...}, ...]
-    // Needed format: {message: '', itemType: '', ...}
-    let propsObj = {};
-    if (Array.isArray(definition.properties)) {
-      for (const prop of definition.properties) {
-        propsObj[prop.name] = '';
-      }
-    } else if (definition.properties && typeof definition.properties === 'object') {
-      propsObj = { ...definition.properties };
-    }
+    const defaults = getDefaultProperties(definition);
+    const overrides =
+      definition.properties && !Array.isArray(definition.properties)
+        ? definition.properties
+        : {};
 
     return {
       id: `block-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       type: definition.type,
       name: definition.name,
-      definition: definition,
-      properties: propsObj,
+      definition,
+      properties: { ...defaults, ...overrides },
       customCode: definition.customCode || '',
       children: [],
       color: definition.color
@@ -68,6 +64,7 @@ export function useBlocks() {
     addTemplate,
     updateBlock,
     deleteBlock,
-    removeChildBlock
+    removeChildBlock,
+    reorderChildBlocks
   };
 }

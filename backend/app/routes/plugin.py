@@ -1,10 +1,12 @@
 """Plugin-related API endpoints."""
 
+import os
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
 from app.models.plugin_config import PluginConfig
-from app.models.request import BlocksResponse, GenerateResponse, PreviewResponse
+from app.models.request import BlocksResponse, GenerateResponse, PreviewResponse, WorldsResponse
 from app.services.block_definitions import BlockDefinitionService
 from app.services.code_generator import CodeGeneratorService
 from app.services.plugin_generator import PluginGeneratorService, get_download_path
@@ -70,6 +72,18 @@ async def get_blocks() -> BlocksResponse:
     """Retrieve available block definitions."""
     blocks = block_definitions.get_available_blocks()
     return BlocksResponse(status="success", **blocks)
+
+
+@router.get("/worlds", response_model=WorldsResponse)
+async def get_worlds() -> WorldsResponse:
+    """Retrieve world names for world selector dropdowns."""
+    env_worlds = os.getenv("PAPER_WORLD_NAMES", "")
+    if env_worlds.strip():
+        worlds = [w.strip() for w in env_worlds.split(",") if w.strip()]
+    else:
+        worlds = ["world", "world_nether", "world_the_end"]
+
+    return WorldsResponse(status="success", worlds=worlds)
 
 
 @router.get("/download/{download_id}")

@@ -20,10 +20,100 @@ export const DEFAULT_BLOCKS = {
     },
     {
       type: 'event',
+      id: 'player-move',
+      name: 'PlayerMoveEvent',
+      description: 'Triggered when a player moves or rotates',
+      color: '#3498db',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
+      id: 'player-chat',
+      name: 'AsyncPlayerChatEvent',
+      description: 'Triggered when a player sends a chat message',
+      color: '#3498db',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
+      id: 'player-death',
+      name: 'PlayerDeathEvent',
+      description: 'Triggered when a player dies',
+      color: '#3498db',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
+      id: 'player-respawn',
+      name: 'PlayerRespawnEvent',
+      description: 'Triggered when a player respawns',
+      color: '#3498db',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
+      id: 'player-interact',
+      name: 'PlayerInteractEvent',
+      description: 'Triggered when a player interacts',
+      color: '#3498db',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
+      id: 'player-interact-entity',
+      name: 'PlayerInteractEntityEvent',
+      description: 'Triggered when a player interacts with an entity',
+      color: '#3498db',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
+      id: 'player-toggle-sneak',
+      name: 'PlayerToggleSneakEvent',
+      description: 'Triggered when a player toggles sneaking',
+      color: '#3498db',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
+      id: 'player-toggle-sprint',
+      name: 'PlayerToggleSprintEvent',
+      description: 'Triggered when a player toggles sprinting',
+      color: '#3498db',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
+      id: 'player-drop-item',
+      name: 'PlayerDropItemEvent',
+      description: 'Triggered when a player drops an item',
+      color: '#3498db',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
+      id: 'player-pickup-item',
+      name: 'EntityPickupItemEvent',
+      description: 'Triggered when a player picks up an item',
+      color: '#3498db',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
       id: 'block-break',
       name: 'BlockBreakEvent',
       description: 'Triggered when a player breaks a block',
-      color: '#3498db',
+      color: '#e67e22',
       properties: {},
       children: []
     },
@@ -32,10 +122,109 @@ export const DEFAULT_BLOCKS = {
       id: 'block-place',
       name: 'BlockPlaceEvent',
       description: 'Triggered when a player places a block',
-      color: '#3498db',
+      color: '#e67e22',
       properties: {},
       children: []
-    }
+    },
+    {
+      type: 'event',
+      id: 'block-burn',
+      name: 'BlockBurnEvent',
+      description: 'Triggered when a block burns',
+      color: '#e67e22',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
+      id: 'block-ignite',
+      name: 'BlockIgniteEvent',
+      description: 'Triggered when a block ignites',
+      color: '#e67e22',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
+      id: 'block-grow',
+      name: 'BlockGrowEvent',
+      description: 'Triggered when a block grows (crops, trees)',
+      color: '#e67e22',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
+      id: 'entity-damage',
+      name: 'EntityDamageEvent',
+      description: 'Triggered when any entity takes damage',
+      color: '#e74c3c',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
+      id: 'entity-damage-by-entity',
+      name: 'EntityDamageByEntityEvent',
+      description: 'Triggered when an entity damages another',
+      color: '#e74c3c',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
+      id: 'entity-death',
+      name: 'EntityDeathEvent',
+      description: 'Triggered when any entity dies',
+      color: '#e74c3c',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
+      id: 'entity-spawn',
+      name: 'EntitySpawnEvent',
+      description: 'Triggered when any entity spawns',
+      color: '#e74c3c',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
+      id: 'creature-spawn',
+      name: 'CreatureSpawnEvent',
+      description: 'Triggered when a mob spawns',
+      color: '#e74c3c',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
+      id: 'weather-change',
+      name: 'WeatherChangeEvent',
+      description: 'Triggered when weather changes',
+      color: '#9b59b6',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
+      id: 'thunder-change',
+      name: 'ThunderChangeEvent',
+      description: 'Triggered when thunder starts or stops',
+      color: '#9b59b6',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
+      id: 'server-list-ping',
+      name: 'ServerListPingEvent',
+      description: 'Triggered when server list is pinged',
+      color: '#9b59b6',
+      properties: {},
+      children: []
+    },
   ],
   actions: [
     {
@@ -44,6 +233,15 @@ export const DEFAULT_BLOCKS = {
       name: 'SendMessage',
       description: 'Send a message to the player',
       color: '#27ae60',
+      properties: { message: '' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'send-console-message',
+      name: 'SendConsoleMessage',
+      description: 'Send a message to the console',
+      color: '#95a5a6',
       properties: { message: '' },
       children: []
     },
@@ -144,6 +342,303 @@ export const DEFAULT_BLOCKS = {
       description: 'Drop an item at the player location',
       color: '#27ae60',
       properties: { itemType: 'DIAMOND', amount: '1' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'remove-item',
+      name: 'RemoveItem',
+      description: 'Remove an item from the player',
+      color: '#27ae60',
+      properties: { itemType: 'DIAMOND', amount: '1' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'set-item-in-hand',
+      name: 'SetItemInHand',
+      description: 'Set the item in player hand',
+      color: '#27ae60',
+      properties: { itemType: 'DIAMOND_SWORD', hand: 'MAIN_HAND' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'send-actionbar',
+      name: 'SendActionBar',
+      description: 'Show a message above hotbar',
+      color: '#27ae60',
+      properties: { message: '' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'set-saturation',
+      name: 'SetSaturation',
+      description: 'Set player saturation',
+      color: '#27ae60',
+      properties: { saturation: '5' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'set-game-mode',
+      name: 'SetGameMode',
+      description: 'Change player game mode',
+      color: '#27ae60',
+      properties: { gameMode: 'SURVIVAL' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'damage-player',
+      name: 'DamagePlayer',
+      description: 'Deal damage to player',
+      color: '#e74c3c',
+      properties: { amount: '5' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'set-experience-level',
+      name: 'SetExperienceLevel',
+      description: 'Set player level',
+      color: '#27ae60',
+      properties: { level: '10' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'set-level',
+      name: 'SetLevel',
+      description: 'Set player level',
+      color: '#27ae60',
+      properties: { level: '10' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'set-glowing',
+      name: 'SetGlowing',
+      description: 'Make player glow',
+      color: '#27ae60',
+      properties: { glowing: 'true' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'set-invisible',
+      name: 'SetInvisible',
+      description: 'Make player invisible',
+      color: '#27ae60',
+      properties: { invisible: 'true' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'set-custom-name',
+      name: 'SetCustomName',
+      description: 'Set player custom name',
+      color: '#27ae60',
+      properties: { name: '' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'allow-flight',
+      name: 'AllowFlight',
+      description: 'Allow or disallow flight',
+      color: '#27ae60',
+      properties: { allow: 'true', startFlying: 'false', speed: '0.2' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'set-on-fire',
+      name: 'SetOnFire',
+      description: 'Set player on fire',
+      color: '#e74c3c',
+      properties: { ticks: '100' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'apply-potion-effect',
+      name: 'ApplyPotionEffect',
+      description: 'Apply a potion effect',
+      color: '#27ae60',
+      properties: { effectType: 'SPEED', duration: '200', amplifier: '0' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'remove-potion-effect',
+      name: 'RemovePotionEffect',
+      description: 'Remove a potion effect',
+      color: '#27ae60',
+      properties: { effectType: 'SPEED' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'grant-permission',
+      name: 'GrantPermission',
+      description: 'Grant a permission to player',
+      color: '#9b59b6',
+      properties: { permission: 'vip.commands', value: 'true' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'set-metadata',
+      name: 'SetMetadata',
+      description: 'Set metadata on player',
+      color: '#9b59b6',
+      properties: { key: 'key', value: 'value' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'set-block-type',
+      name: 'SetBlockType',
+      description: 'Set block type at target',
+      color: '#e67e22',
+      properties: { blockType: 'STONE' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'remove-block',
+      name: 'RemoveBlock',
+      description: 'Remove target block',
+      color: '#e67e22',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'damage-entity',
+      name: 'DamageEntity',
+      description: 'Deal damage to entity',
+      color: '#e74c3c',
+      properties: { amount: '5' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'set-entity-health',
+      name: 'SetEntityHealth',
+      description: 'Set entity health',
+      color: '#e74c3c',
+      properties: { health: '20' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'teleport-entity',
+      name: 'TeleportEntity',
+      description: 'Teleport an entity',
+      color: '#e74c3c',
+      properties: { x: '0', y: '64', z: '0' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'set-entity-velocity',
+      name: 'SetEntityVelocity',
+      description: 'Set entity velocity',
+      color: '#e74c3c',
+      properties: { x: '0', y: '1', z: '0' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'apply-entity-potion-effect',
+      name: 'ApplyEntityPotionEffect',
+      description: 'Apply potion effect to entity',
+      color: '#e74c3c',
+      properties: { effectType: 'SPEED', duration: '200', amplifier: '0' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'set-entity-on-fire',
+      name: 'SetEntityOnFire',
+      description: 'Set entity on fire',
+      color: '#e74c3c',
+      properties: { ticks: '100' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'set-entity-custom-name',
+      name: 'SetEntityCustomName',
+      description: 'Set entity custom name',
+      color: '#e74c3c',
+      properties: { name: 'Boss' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'set-entity-equipment',
+      name: 'SetEntityEquipment',
+      description: 'Set entity equipment',
+      color: '#e74c3c',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'set-thunder',
+      name: 'SetThunder',
+      description: 'Set thunder state',
+      color: '#9b59b6',
+      properties: { thunder: 'false', duration: '6000' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'spawn-entity',
+      name: 'SpawnEntity',
+      description: 'Spawn an entity in world',
+      color: '#9b59b6',
+      properties: { entityType: 'ZOMBIE' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'strike-with-lightning',
+      name: 'StrikeWithLightning',
+      description: 'Strike lightning at location',
+      color: '#9b59b6',
+      properties: { damage: 'true' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'spawn-particles',
+      name: 'SpawnParticles',
+      description: 'Spawn particle effects',
+      color: '#27ae60',
+      properties: { particle: 'HEART', count: '10' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'fill-region',
+      name: 'FillRegion',
+      description: 'Fill a region with blocks',
+      color: '#e67e22',
+      properties: { x1: '0', y1: '64', z1: '0', x2: '10', y2: '70', z2: '10', blockType: 'STONE' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'execute-command-as-player',
+      name: 'ExecuteCommandAsPlayer',
+      description: 'Execute command as player',
+      color: '#9b59b6',
+      properties: { command: '' },
       children: []
     },
   ],
@@ -383,6 +878,40 @@ export const TEMPLATES = [
     event: { type: 'event', name: 'BlockPlaceEvent', color: '#3498db', properties: {} },
     children: [
       { type: 'action', name: 'PlaySound', color: '#27ae60', properties: { sound: 'BLOCK_NOTE_BLOCK_PLING', volume: '0.5', pitch: '1.5' } },
+    ],
+  },
+  // ── Chat Templates ──
+  {
+    id: 'tpl-chat-filter',
+    name: 'Chat Filter',
+    description: 'Filter and replace banned words in chat',
+    color: '#2980b9',
+    event: { type: 'event', name: 'AsyncPlayerChatEvent', color: '#3498db', properties: {} },
+    children: [
+      {
+        type: 'custom-action',
+        name: 'Custom Action',
+        color: '#9b59b6',
+        properties: {},
+        customCode: 'String msg = event.getMessage();\nmsg = msg.replaceAll("(?i)badword", "***");\nevent.setMessage(msg);'
+      },
+    ],
+  },
+  // ── Death Templates ──
+  {
+    id: 'tpl-death-message',
+    name: 'Death Message Customization',
+    description: 'Set a custom death message and play a sound',
+    color: '#2980b9',
+    event: { type: 'event', name: 'PlayerDeathEvent', color: '#3498db', properties: {} },
+    children: [
+      {
+        type: 'custom-action',
+        name: 'Custom Action',
+        color: '#9b59b6',
+        properties: {},
+        customCode: 'event.setDeathMessage(ChatColor.RED + player.getName() + " was eliminated!");\nplayer.getWorld().playSound(player.getLocation(), Sound.ENTITY_WITHER_DEATH, 1.0f, 1.0f);'
+      },
     ],
   },
 ];
