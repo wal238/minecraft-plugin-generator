@@ -1245,3 +1245,516 @@ class TestPomXml:
         assert "io.papermc.paper" in pom_xml
         assert "paper-api" in pom_xml
         assert "1.21.1-R0.1-SNAPSHOT" in pom_xml
+
+
+class TestDelayAction:
+    """Test DelayAction code generation."""
+
+    def test_delay_wraps_remaining_actions(self, generator, base_config):
+        """Test DelayAction wraps all subsequent actions in a BukkitRunnable."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="event-1", type=BlockType.EVENT, name="PlayerJoinEvent",
+                      properties={}, children=["action-1", "action-2", "action-3"]),
+                Block(id="action-1", type=BlockType.ACTION, name="SendMessage",
+                      properties={"message": "Before delay"}, children=[]),
+                Block(id="action-2", type=BlockType.ACTION, name="DelayAction",
+                      properties={"delayTicks": "40"}, children=[]),
+                Block(id="action-3", type=BlockType.ACTION, name="SendMessage",
+                      properties={"message": "After delay"}, children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+
+        assert 'player.sendMessage("Before delay");' in code
+        assert "new BukkitRunnable()" in code
+        assert "runTaskLater" in code
+        assert "40" in code
+        assert 'player.sendMessage("After delay");' in code
+        assert "import org.bukkit.scheduler.BukkitRunnable;" in code
+
+    def test_delay_in_command_context(self, generator, base_config):
+        """Test DelayAction works in command context."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="cmd-1", type=BlockType.EVENT, name="CommandEvent",
+                      properties={"commandName": "delayed"}, children=["action-1", "action-2"]),
+                Block(id="action-1", type=BlockType.ACTION, name="DelayAction",
+                      properties={"delayTicks": "60"}, children=[]),
+                Block(id="action-2", type=BlockType.ACTION, name="SendMessage",
+                      properties={"message": "Delayed message"}, children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = result["commands"]["CommandDelayed.java"]
+
+        assert "new BukkitRunnable()" in code
+        assert "runTaskLater" in code
+        assert "60" in code
+        assert 'player.sendMessage("Delayed message");' in code
+
+
+class TestRepeatAction:
+    """Test RepeatAction code generation."""
+
+    def test_repeat_wraps_remaining_actions(self, generator, base_config):
+        """Test RepeatAction wraps subsequent actions in a repeating BukkitRunnable."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="event-1", type=BlockType.EVENT, name="PlayerJoinEvent",
+                      properties={}, children=["action-1", "action-2"]),
+                Block(id="action-1", type=BlockType.ACTION, name="RepeatAction",
+                      properties={"intervalTicks": "20", "repeatCount": "5"}, children=[]),
+                Block(id="action-2", type=BlockType.ACTION, name="SendMessage",
+                      properties={"message": "Repeating!"}, children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+
+        assert "new BukkitRunnable()" in code
+        assert "runTaskTimer" in code
+        assert "20" in code
+        assert "count >= 5" in code
+        assert "this.cancel()" in code
+        assert 'player.sendMessage("Repeating!");' in code
+
+    def test_repeat_infinite(self, generator, base_config):
+        """Test RepeatAction with no count limit (infinite)."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="event-1", type=BlockType.EVENT, name="PlayerJoinEvent",
+                      properties={}, children=["action-1", "action-2"]),
+                Block(id="action-1", type=BlockType.ACTION, name="RepeatAction",
+                      properties={"intervalTicks": "40"}, children=[]),
+                Block(id="action-2", type=BlockType.ACTION, name="SendMessage",
+                      properties={"message": "Forever!"}, children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+
+        assert "runTaskTimer" in code
+        assert "count" not in code  # No counter for infinite
+
+
+class TestGiveItemMeta:
+    """Test GiveItem with ItemMeta properties."""
+
+    def test_give_item_with_display_name(self, generator, base_config):
+        """Test GiveItem generates ItemMeta code when displayName is set."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="event-1", type=BlockType.EVENT, name="PlayerJoinEvent",
+                      properties={}, children=["action-1"]),
+                Block(id="action-1", type=BlockType.ACTION, name="GiveItem",
+                      properties={"itemType": "DIAMOND_SWORD", "amount": "1",
+                                  "displayName": "&6Legendary Sword"},
+                      children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+
+        assert "ItemMeta meta = customItem.getItemMeta();" in code
+        assert "meta.setDisplayName" in code
+        assert "translateAlternateColorCodes" in code
+        assert "Legendary Sword" in code
+        assert "customItem.setItemMeta(meta);" in code
+        assert "player.getInventory().addItem(customItem);" in code
+
+    def test_give_item_with_lore(self, generator, base_config):
+        """Test GiveItem generates lore lines from pipe-separated string."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="event-1", type=BlockType.EVENT, name="PlayerJoinEvent",
+                      properties={}, children=["action-1"]),
+                Block(id="action-1", type=BlockType.ACTION, name="GiveItem",
+                      properties={"itemType": "DIAMOND", "amount": "1",
+                                  "lore": "Line 1|Line 2"},
+                      children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+
+        assert "meta.setLore" in code
+        assert "Arrays.asList" in code
+        assert "Line 1" in code
+        assert "Line 2" in code
+
+    def test_give_item_with_enchantments(self, generator, base_config):
+        """Test GiveItem generates enchantment code."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="event-1", type=BlockType.EVENT, name="PlayerJoinEvent",
+                      properties={}, children=["action-1"]),
+                Block(id="action-1", type=BlockType.ACTION, name="GiveItem",
+                      properties={"itemType": "DIAMOND_SWORD", "amount": "1",
+                                  "enchantments": "SHARPNESS:5,UNBREAKING:3"},
+                      children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+
+        assert "meta.addEnchant" in code
+        assert "Enchantment.SHARPNESS, 5" in code
+        assert "Enchantment.UNBREAKING, 3" in code
+
+    def test_give_item_with_item_flags(self, generator, base_config):
+        """Test GiveItem generates item flag code."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="event-1", type=BlockType.EVENT, name="PlayerJoinEvent",
+                      properties={}, children=["action-1"]),
+                Block(id="action-1", type=BlockType.ACTION, name="GiveItem",
+                      properties={"itemType": "DIAMOND_SWORD", "amount": "1",
+                                  "itemFlags": "HIDE_ENCHANTS,HIDE_ATTRIBUTES"},
+                      children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+
+        assert "meta.addItemFlags" in code
+        assert "ItemFlag.HIDE_ENCHANTS" in code
+        assert "ItemFlag.HIDE_ATTRIBUTES" in code
+
+    def test_give_item_without_meta_unchanged(self, generator, base_config):
+        """Test GiveItem without meta properties still generates simple code."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="event-1", type=BlockType.EVENT, name="PlayerJoinEvent",
+                      properties={}, children=["action-1"]),
+                Block(id="action-1", type=BlockType.ACTION, name="GiveItem",
+                      properties={"itemType": "DIAMOND", "amount": "5"},
+                      children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+
+        assert "player.getInventory().addItem(new ItemStack(Material.DIAMOND, 5));" in code
+        assert "ItemMeta" not in code
+
+    def test_give_item_meta_in_command_context(self, generator, base_config):
+        """Test GiveItem with ItemMeta works in command context."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="cmd-1", type=BlockType.EVENT, name="CommandEvent",
+                      properties={"commandName": "sword"}, children=["action-1"]),
+                Block(id="action-1", type=BlockType.ACTION, name="GiveItem",
+                      properties={"itemType": "DIAMOND_SWORD", "amount": "1",
+                                  "displayName": "&cFire Sword",
+                                  "enchantments": "FIRE_ASPECT:2"},
+                      children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = result["commands"]["CommandSword.java"]
+
+        assert "ItemMeta meta = customItem.getItemMeta();" in code
+        assert "Fire Sword" in code
+        assert "Enchantment.FIRE_ASPECT, 2" in code
+        assert "import org.bukkit.inventory.meta.ItemMeta;" in code
+
+
+class TestCooldownSystem:
+    """Test SetCooldown and CheckCooldown code generation with shared CooldownManager."""
+
+    def test_set_cooldown(self, generator, base_config):
+        """Test SetCooldown generates CooldownManager.setCooldown call."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="event-1", type=BlockType.EVENT, name="PlayerJoinEvent",
+                      properties={}, children=["action-1"]),
+                Block(id="action-1", type=BlockType.ACTION, name="SetCooldown",
+                      properties={"cooldownName": "join_cd", "duration": "10"},
+                      children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+
+        assert "CooldownManager.setCooldown" in code
+        assert "join_cd" in code
+        assert "10 * 1000L" in code
+        assert "getUniqueId()" in code
+        assert "import" in code and "CooldownManager" in code
+
+    def test_check_cooldown_with_message(self, generator, base_config):
+        """Test CheckCooldown generates guard clause with CooldownManager."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="event-1", type=BlockType.EVENT, name="PlayerJoinEvent",
+                      properties={}, children=["action-1", "action-2"]),
+                Block(id="action-1", type=BlockType.ACTION, name="CheckCooldown",
+                      properties={"cooldownName": "my_cd",
+                                  "cooldownMessage": "Wait %remaining% seconds!"},
+                      children=[]),
+                Block(id="action-2", type=BlockType.ACTION, name="SendMessage",
+                      properties={"message": "You passed the cooldown check!"}, children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+
+        assert "CooldownManager.isOnCooldown" in code
+        assert "my_cd" in code
+        assert "player.sendMessage" in code
+        assert "CooldownManager.getRemainingSeconds" in code
+        assert "return;" in code
+
+    def test_cooldown_manager_utility_generated(self, generator, base_config):
+        """Test that shared CooldownManager utility class is generated."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="event-1", type=BlockType.EVENT, name="PlayerJoinEvent",
+                      properties={}, children=["action-1"]),
+                Block(id="action-1", type=BlockType.ACTION, name="SetCooldown",
+                      properties={"cooldownName": "test", "duration": "5"},
+                      children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+
+        assert "utilities" in result
+        assert "CooldownManager.java" in result["utilities"]
+        util_code = result["utilities"]["CooldownManager.java"]
+        assert "ConcurrentHashMap" in util_code
+        assert "public static void setCooldown" in util_code
+        assert "public static boolean isOnCooldown" in util_code
+        assert "public static long getRemainingSeconds" in util_code
+
+    def test_no_per_class_cooldown_field(self, generator, base_config):
+        """Test that listener/command classes do NOT have per-class cooldown fields."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="event-1", type=BlockType.EVENT, name="PlayerJoinEvent",
+                      properties={}, children=["action-1"]),
+                Block(id="action-1", type=BlockType.ACTION, name="SetCooldown",
+                      properties={"cooldownName": "test", "duration": "5"},
+                      children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+
+        assert "HashMap<String, java.util.HashMap" not in code
+        assert "private static final java.util.HashMap" not in code
+
+    def test_cooldown_in_command_context(self, generator, base_config):
+        """Test cooldown system works in command context with shared CooldownManager."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="cmd-1", type=BlockType.EVENT, name="CommandEvent",
+                      properties={"commandName": "heal"}, children=["action-1", "action-2"]),
+                Block(id="action-1", type=BlockType.ACTION, name="CheckCooldown",
+                      properties={"cooldownName": "heal_cd",
+                                  "cooldownMessage": "Heal on cooldown!"},
+                      children=[]),
+                Block(id="action-2", type=BlockType.ACTION, name="SetCooldown",
+                      properties={"cooldownName": "heal_cd", "duration": "30"},
+                      children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = result["commands"]["CommandHeal.java"]
+
+        assert "CooldownManager.isOnCooldown" in code
+        assert "CooldownManager.setCooldown" in code
+        assert "heal_cd" in code
+        assert "import" in code and "CooldownManager" in code
+
+    def test_check_cooldown_without_message(self, generator, base_config):
+        """Test CheckCooldown without a message still returns."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="event-1", type=BlockType.EVENT, name="PlayerJoinEvent",
+                      properties={}, children=["action-1"]),
+                Block(id="action-1", type=BlockType.ACTION, name="CheckCooldown",
+                      properties={"cooldownName": "silent_cd"},
+                      children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+
+        assert "return;" in code
+        assert "CooldownManager.isOnCooldown" in code
+
+    def test_cooldown_shared_across_classes(self, generator, base_config):
+        """Test that cooldown state is shared: both listener and command use CooldownManager."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(id="event-1", type=BlockType.EVENT, name="PlayerJoinEvent",
+                      properties={}, children=["action-1"]),
+                Block(id="action-1", type=BlockType.ACTION, name="SetCooldown",
+                      properties={"cooldownName": "shared_cd", "duration": "10"},
+                      children=[]),
+                Block(id="cmd-1", type=BlockType.EVENT, name="CommandEvent",
+                      properties={"commandName": "check"}, children=["action-2"]),
+                Block(id="action-2", type=BlockType.ACTION, name="CheckCooldown",
+                      properties={"cooldownName": "shared_cd",
+                                  "cooldownMessage": "Still on cooldown!"},
+                      children=[]),
+            ],
+        )
+        result = generator.generate_all(config)
+        listener_code = list(result["listeners"].values())[0]
+        command_code = result["commands"]["CommandCheck.java"]
+
+        # Both reference the shared CooldownManager, not local fields
+        assert "CooldownManager.setCooldown" in listener_code
+        assert "CooldownManager.isOnCooldown" in command_code
+        # Neither has a per-class HashMap
+        assert "private static final" not in listener_code or "HashMap" not in listener_code
+        assert "private static final" not in command_code or "HashMap" not in command_code
+
+
+class TestBranchIfBlocks:
+    """Test explicit if/else branching block generation."""
+
+    def test_branch_if_else_with_and_combinator(self, generator, base_config):
+        """BranchIf + BranchElse + BranchEndIf should generate structured if/else code."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="event-1",
+                    type=BlockType.EVENT,
+                    name="PlayerJoinEvent",
+                    properties={},
+                    children=["if-1", "action-1", "else-1", "action-2", "end-1"],
+                ),
+                Block(
+                    id="if-1",
+                    type=BlockType.ACTION,
+                    name="BranchIf",
+                    properties={
+                        "firstType": "HasPermission",
+                        "firstPermission": "myplugin.vip",
+                        "combinator": "AND",
+                        "secondType": "HealthBelow",
+                        "secondHealth": "6",
+                    },
+                    children=[],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="SendMessage",
+                    properties={"message": "VIP low HP"},
+                    children=[],
+                ),
+                Block(
+                    id="else-1",
+                    type=BlockType.ACTION,
+                    name="BranchElse",
+                    properties={},
+                    children=[],
+                ),
+                Block(
+                    id="action-2",
+                    type=BlockType.ACTION,
+                    name="SendMessage",
+                    properties={"message": "Default branch"},
+                    children=[],
+                ),
+                Block(
+                    id="end-1",
+                    type=BlockType.ACTION,
+                    name="BranchEndIf",
+                    properties={},
+                    children=[],
+                ),
+            ],
+        )
+
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+
+        assert "player.hasPermission(\"myplugin.vip\")" in code
+        assert "player.getHealth() < 6" in code
+        assert "&&" in code
+        assert "} else {" in code
+        assert 'player.sendMessage("VIP low HP");' in code
+        assert 'player.sendMessage("Default branch");' in code
+
+
+class TestTypedCommandArguments:
+    """Test StringArg/PlayerArg/IntegerArg command argument generation."""
+
+    def test_typed_command_args_generate_prelude(self, generator, base_config):
+        """Typed arg blocks should generate parsing/validation code before actions."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="cmd-1",
+                    type=BlockType.EVENT,
+                    name="CommandEvent",
+                    properties={"commandName": "reward"},
+                    children=["arg-1", "arg-2", "arg-3", "action-1"],
+                ),
+                Block(
+                    id="arg-1",
+                    type=BlockType.ACTION,
+                    name="StringArg",
+                    properties={"argName": "reason", "required": "true"},
+                    children=[],
+                ),
+                Block(
+                    id="arg-2",
+                    type=BlockType.ACTION,
+                    name="IntegerArg",
+                    properties={"argName": "amount", "required": "true", "min": "1"},
+                    children=[],
+                ),
+                Block(
+                    id="arg-3",
+                    type=BlockType.ACTION,
+                    name="PlayerArg",
+                    properties={"argName": "targetPlayer", "required": "false"},
+                    children=[],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="SendMessage",
+                    properties={"message": "Rewarded %arg0%"},
+                    children=[],
+                ),
+            ],
+        )
+
+        result = generator.generate_all(config)
+        code = result["commands"]["CommandReward.java"]
+
+        assert "String reason = args[0];" in code
+        assert "int amount;" in code
+        assert "amount = Integer.parseInt(args[1]);" in code
+        assert "if (amount < 1)" in code
+        assert "Player targetPlayer = null;" in code
+        assert "targetPlayer = Bukkit.getPlayerExact(args[2]);" in code
+        assert "Missing required argument: reason" in code
+        assert "Missing required integer argument: amount" in code

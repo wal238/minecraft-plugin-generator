@@ -287,6 +287,10 @@ class BlockDefinitionService:
                     "properties": [
                         {"name": "itemType", "type": "string", "required": True, "placeholder": "e.g., DIAMOND"},
                         {"name": "amount", "type": "string", "required": False, "placeholder": "1"},
+                        {"name": "displayName", "type": "string", "required": False, "placeholder": "Custom item name (supports &color codes)"},
+                        {"name": "lore", "type": "string", "required": False, "placeholder": "Line 1|Line 2|Line 3 (use | to separate lines)"},
+                        {"name": "enchantments", "type": "string", "required": False, "placeholder": "SHARPNESS:5,UNBREAKING:3"},
+                        {"name": "itemFlags", "type": "string", "required": False, "placeholder": "HIDE_ENCHANTS,HIDE_ATTRIBUTES"},
                     ],
                 },
                 {
@@ -881,6 +885,122 @@ class BlockDefinitionService:
                         {"name": "command", "type": "string", "required": True, "placeholder": "say Hello"},
                     ],
                 },
+                # Command Argument Blocks
+                {
+                    "id": "string-arg",
+                    "name": "StringArg",
+                    "type": "action",
+                    "description": "Declare a typed string command argument",
+                    "color": "#16a085",
+                    "properties": [
+                        {"name": "argName", "type": "string", "required": True, "placeholder": "targetName"},
+                        {"name": "required", "type": "string", "required": False, "placeholder": "true"},
+                        {"name": "defaultValue", "type": "string", "required": False, "placeholder": "guest"},
+                    ],
+                },
+                {
+                    "id": "player-arg",
+                    "name": "PlayerArg",
+                    "type": "action",
+                    "description": "Declare a typed player command argument",
+                    "color": "#16a085",
+                    "properties": [
+                        {"name": "argName", "type": "string", "required": True, "placeholder": "targetPlayer"},
+                        {"name": "required", "type": "string", "required": False, "placeholder": "true"},
+                    ],
+                },
+                {
+                    "id": "integer-arg",
+                    "name": "IntegerArg",
+                    "type": "action",
+                    "description": "Declare a typed integer command argument",
+                    "color": "#16a085",
+                    "properties": [
+                        {"name": "argName", "type": "string", "required": True, "placeholder": "amount"},
+                        {"name": "required", "type": "string", "required": False, "placeholder": "true"},
+                        {"name": "defaultValue", "type": "string", "required": False, "placeholder": "1"},
+                        {"name": "min", "type": "string", "required": False, "placeholder": "0"},
+                        {"name": "max", "type": "string", "required": False, "placeholder": "100"},
+                    ],
+                },
+                # Cooldown System
+                {
+                    "id": "set-cooldown",
+                    "name": "SetCooldown",
+                    "type": "action",
+                    "description": "Set a cooldown timer for the player",
+                    "color": "#8e44ad",
+                    "properties": [
+                        {"name": "cooldownName", "type": "string", "required": True, "placeholder": "my_cooldown"},
+                        {"name": "duration", "type": "string", "required": True, "placeholder": "5"},
+                        {"name": "cooldownMessage", "type": "string", "required": False, "placeholder": "Please wait %remaining% seconds!"},
+                    ],
+                },
+                # Scheduled Tasks
+                {
+                    "id": "delay-action",
+                    "name": "DelayAction",
+                    "type": "action",
+                    "description": "Execute following actions after a delay (uses BukkitRunnable)",
+                    "color": "#8e44ad",
+                    "properties": [
+                        {"name": "delayTicks", "type": "string", "required": True, "placeholder": "20"},
+                    ],
+                },
+                {
+                    "id": "repeat-action",
+                    "name": "RepeatAction",
+                    "type": "action",
+                    "description": "Repeat following actions at interval (uses BukkitRunnable)",
+                    "color": "#8e44ad",
+                    "properties": [
+                        {"name": "intervalTicks", "type": "string", "required": True, "placeholder": "20"},
+                        {"name": "repeatCount", "type": "string", "required": False, "placeholder": "0 (infinite)"},
+                    ],
+                },
+                # Explicit branching blocks
+                {
+                    "id": "branch-if",
+                    "name": "BranchIf",
+                    "type": "action",
+                    "description": "Start an explicit if branch with optional AND/OR second condition",
+                    "color": "#f39c12",
+                    "properties": [
+                        {"name": "firstType", "type": "string", "required": False, "placeholder": "HasPermission"},
+                        {"name": "firstPermission", "type": "string", "required": False, "placeholder": "myplugin.admin"},
+                        {"name": "firstItemType", "type": "string", "required": False, "placeholder": "DIAMOND"},
+                        {"name": "firstAmount", "type": "string", "required": False, "placeholder": "1"},
+                        {"name": "firstWorld", "type": "string", "required": False, "placeholder": "world"},
+                        {"name": "firstHealth", "type": "string", "required": False, "placeholder": "5"},
+                        {"name": "firstGameMode", "type": "string", "required": False, "placeholder": "SURVIVAL"},
+                        {"name": "firstCooldownName", "type": "string", "required": False, "placeholder": "my_cooldown"},
+                        {"name": "combinator", "type": "string", "required": False, "placeholder": "AND"},
+                        {"name": "secondType", "type": "string", "required": False, "placeholder": "None"},
+                        {"name": "secondPermission", "type": "string", "required": False, "placeholder": "myplugin.vip"},
+                        {"name": "secondItemType", "type": "string", "required": False, "placeholder": "EMERALD"},
+                        {"name": "secondAmount", "type": "string", "required": False, "placeholder": "1"},
+                        {"name": "secondWorld", "type": "string", "required": False, "placeholder": "world"},
+                        {"name": "secondHealth", "type": "string", "required": False, "placeholder": "10"},
+                        {"name": "secondGameMode", "type": "string", "required": False, "placeholder": "CREATIVE"},
+                        {"name": "secondCooldownName", "type": "string", "required": False, "placeholder": "my_cooldown"},
+                    ],
+                },
+                {
+                    "id": "branch-else",
+                    "name": "BranchElse",
+                    "type": "action",
+                    "description": "Start the else branch for the latest BranchIf",
+                    "color": "#f39c12",
+                    "properties": [],
+                },
+                {
+                    "id": "branch-end-if",
+                    "name": "BranchEndIf",
+                    "type": "action",
+                    "description": "Close the latest BranchIf block",
+                    "color": "#f39c12",
+                    "properties": [],
+                },
                 # Condition Blocks (guard clauses)
                 {
                     "id": "condition-has-permission",
@@ -995,6 +1115,17 @@ class BlockDefinitionService:
                     "color": "#f39c12",
                     "properties": [
                         {"name": "level", "type": "string", "required": True, "placeholder": "10"},
+                    ],
+                },
+                {
+                    "id": "check-cooldown",
+                    "name": "CheckCooldown",
+                    "type": "action",
+                    "description": "Only run following actions if player is NOT on cooldown",
+                    "color": "#f39c12",
+                    "properties": [
+                        {"name": "cooldownName", "type": "string", "required": True, "placeholder": "my_cooldown"},
+                        {"name": "cooldownMessage", "type": "string", "required": False, "placeholder": "Please wait %remaining% seconds!"},
                     ],
                 },
             ],

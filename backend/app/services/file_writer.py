@@ -63,6 +63,15 @@ class FileWriterService:
             command_path.write_text(code, encoding="utf-8")
             logger.info("Wrote %s", command_path)
 
+        # Write utility classes
+        if files.get("utilities"):
+            util_dir = java_dir / "util"
+            util_dir.mkdir(parents=True, exist_ok=True)
+            for filename, code in files["utilities"].items():
+                util_path = util_dir / filename
+                util_path.write_text(code, encoding="utf-8")
+                logger.info("Wrote %s", util_path)
+
         # Write plugin.yml
         yml_path = resources_dir / "plugin.yml"
         yml_path.write_text(files["plugin_yml"], encoding="utf-8")

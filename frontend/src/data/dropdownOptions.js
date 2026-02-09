@@ -269,6 +269,30 @@ export const BOOLEAN_OPTIONS = [
   { value: 'false', label: 'Off' },
 ];
 
+export const REQUIRED_OPTIONS = [
+  { value: 'true', label: 'Required' },
+  { value: 'false', label: 'Optional' },
+];
+
+export const BRANCH_CONDITION_TYPE_OPTIONS = [
+  { value: 'HasPermission', label: 'Has Permission' },
+  { value: 'HasItem', label: 'Has Item' },
+  { value: 'IsInWorld', label: 'Is In World' },
+  { value: 'HealthBelow', label: 'Health Below' },
+  { value: 'HealthAbove', label: 'Health Above' },
+  { value: 'GameModeEquals', label: 'Game Mode Equals' },
+  { value: 'IsSneaking', label: 'Is Sneaking' },
+  { value: 'IsFlying', label: 'Is Flying' },
+  { value: 'IsOp', label: 'Is Op' },
+  { value: 'CheckCooldown', label: 'Cooldown Ready' },
+  { value: 'None', label: 'None (disable condition)' },
+];
+
+export const BRANCH_COMBINATOR_OPTIONS = [
+  { value: 'AND', label: 'AND' },
+  { value: 'OR', label: 'OR' },
+];
+
 // ============================================
 // HAND OPTIONS - Used by SetItemInHand
 // ============================================
@@ -301,6 +325,67 @@ export const DURATION_PRESETS = [
 ];
 
 // ============================================
+// ENCHANTMENTS - Used by GiveItem ItemMeta
+// ============================================
+export const ENCHANTMENT_OPTIONS = {
+  WEAPONS: [
+    'SHARPNESS', 'SMITE', 'BANE_OF_ARTHROPODS', 'KNOCKBACK', 'FIRE_ASPECT',
+    'LOOTING', 'SWEEPING_EDGE',
+  ],
+  TOOLS: [
+    'EFFICIENCY', 'SILK_TOUCH', 'UNBREAKING', 'FORTUNE', 'MENDING',
+  ],
+  ARMOR: [
+    'PROTECTION', 'FIRE_PROTECTION', 'BLAST_PROTECTION', 'PROJECTILE_PROTECTION',
+    'THORNS', 'RESPIRATION', 'AQUA_AFFINITY', 'DEPTH_STRIDER', 'FROST_WALKER',
+    'SOUL_SPEED', 'SWIFT_SNEAK',
+  ],
+  BOW: [
+    'POWER', 'PUNCH', 'FLAME', 'INFINITY',
+  ],
+  FISHING: [
+    'LUCK_OF_THE_SEA', 'LURE',
+  ],
+  TRIDENT: [
+    'LOYALTY', 'IMPALING', 'RIPTIDE', 'CHANNELING',
+  ],
+  CROSSBOW: [
+    'MULTISHOT', 'QUICK_CHARGE', 'PIERCING',
+  ],
+  GENERAL: [
+    'VANISHING_CURSE', 'BINDING_CURSE',
+  ],
+};
+
+// ============================================
+// ITEM FLAGS - Used by GiveItem ItemMeta
+// ============================================
+export const ITEM_FLAG_OPTIONS = [
+  { value: 'HIDE_ENCHANTS', label: 'Hide Enchants' },
+  { value: 'HIDE_ATTRIBUTES', label: 'Hide Attributes' },
+  { value: 'HIDE_UNBREAKABLE', label: 'Hide Unbreakable' },
+  { value: 'HIDE_DESTROYS', label: 'Hide Destroys' },
+  { value: 'HIDE_PLACED_ON', label: 'Hide Placed On' },
+  { value: 'HIDE_DYE', label: 'Hide Dye' },
+];
+
+// ============================================
+// TICK PRESETS - Used by DelayAction, RepeatAction
+// ============================================
+export const TICK_PRESETS = [
+  { value: '1', label: '1 tick (0.05s)' },
+  { value: '10', label: '10 ticks (0.5s)' },
+  { value: '20', label: '1 second' },
+  { value: '40', label: '2 seconds' },
+  { value: '60', label: '3 seconds' },
+  { value: '100', label: '5 seconds' },
+  { value: '200', label: '10 seconds' },
+  { value: '600', label: '30 seconds' },
+  { value: '1200', label: '1 minute' },
+  { value: '6000', label: '5 minutes' },
+];
+
+// ============================================
 // ACTION FIELD DEFINITIONS
 // Defines what fields each action needs and their types
 // ============================================
@@ -317,6 +402,10 @@ export const ACTION_FIELDS = {
   GiveItem: [
     { name: 'itemType', label: 'Item', type: 'grouped-select', options: ITEM_OPTIONS },
     { name: 'amount', label: 'Amount', type: 'number', min: 1, max: 64, default: '1' },
+    { name: 'displayName', label: 'Display Name', type: 'text', placeholder: 'Custom name (use & for colors, e.g. &6Golden Sword)' },
+    { name: 'lore', label: 'Lore Lines', type: 'text', placeholder: 'Line 1|Line 2|Line 3 (separate with |)' },
+    { name: 'enchantments', label: 'Enchantments', type: 'text', placeholder: 'SHARPNESS:5,UNBREAKING:3' },
+    { name: 'itemFlags', label: 'Item Flags', type: 'text', placeholder: 'HIDE_ENCHANTS,HIDE_ATTRIBUTES' },
   ],
   DropItem: [
     { name: 'itemType', label: 'Item', type: 'grouped-select', options: ITEM_OPTIONS },
@@ -459,6 +548,22 @@ export const ACTION_FIELDS = {
   ExecuteCommandAsPlayer: [
     { name: 'command', label: 'Command', type: 'text', placeholder: 'Command without / (use %player%)' },
   ],
+  StringArg: [
+    { name: 'argName', label: 'Argument Name', type: 'text', placeholder: 'targetName', required: true },
+    { name: 'required', label: 'Requirement', type: 'select', options: REQUIRED_OPTIONS, default: 'true' },
+    { name: 'defaultValue', label: 'Default Value', type: 'text', placeholder: 'Used when optional and not provided' },
+  ],
+  PlayerArg: [
+    { name: 'argName', label: 'Argument Name', type: 'text', placeholder: 'targetPlayer', required: true },
+    { name: 'required', label: 'Requirement', type: 'select', options: REQUIRED_OPTIONS, default: 'true' },
+  ],
+  IntegerArg: [
+    { name: 'argName', label: 'Argument Name', type: 'text', placeholder: 'amount', required: true },
+    { name: 'required', label: 'Requirement', type: 'select', options: REQUIRED_OPTIONS, default: 'true' },
+    { name: 'defaultValue', label: 'Default Value', type: 'number', default: '1' },
+    { name: 'min', label: 'Minimum (optional)', type: 'number', placeholder: '0' },
+    { name: 'max', label: 'Maximum (optional)', type: 'number', placeholder: '100' },
+  ],
   ExecuteConsoleCommand: [
     { name: 'command', label: 'Command', type: 'text', placeholder: 'Console command (use %player%)' },
   ],
@@ -528,6 +633,43 @@ export const ACTION_FIELDS = {
     { name: 'key', label: 'Key', type: 'text', placeholder: 'key' },
     { name: 'value', label: 'Value', type: 'text', placeholder: 'value' },
   ],
+  DelayAction: [
+    { name: 'delayTicks', label: 'Delay', type: 'select-or-custom', options: TICK_PRESETS, min: 1, max: 72000, default: '20', hint: 'ticks (20 = 1 second)' },
+  ],
+  RepeatAction: [
+    { name: 'intervalTicks', label: 'Interval', type: 'select-or-custom', options: TICK_PRESETS, min: 1, max: 72000, default: '20', hint: 'ticks (20 = 1 second)' },
+    { name: 'repeatCount', label: 'Repeat Count', type: 'number', min: 0, max: 100000, default: '0', hint: '0 = infinite' },
+  ],
+  SetCooldown: [
+    { name: 'cooldownName', label: 'Cooldown Name', type: 'text', placeholder: 'my_cooldown', required: true },
+    { name: 'duration', label: 'Duration (seconds)', type: 'number', min: 1, max: 86400, default: '5', hint: 'seconds' },
+    { name: 'cooldownMessage', label: 'Message (optional)', type: 'text', placeholder: 'Please wait %remaining% seconds!' },
+  ],
+  CheckCooldown: [
+    { name: 'cooldownName', label: 'Cooldown Name', type: 'text', placeholder: 'my_cooldown', required: true },
+    { name: 'cooldownMessage', label: 'Deny Message', type: 'text', placeholder: 'Please wait %remaining% seconds!' },
+  ],
+  BranchIf: [
+    { name: 'firstType', label: 'Primary Condition', type: 'select', options: BRANCH_CONDITION_TYPE_OPTIONS, default: 'HasPermission' },
+    { name: 'firstPermission', label: 'Primary Permission', type: 'text', placeholder: 'myplugin.admin' },
+    { name: 'firstItemType', label: 'Primary Item', type: 'grouped-select', options: ITEM_OPTIONS },
+    { name: 'firstAmount', label: 'Primary Item Amount', type: 'number', min: 1, max: 64, default: '1' },
+    { name: 'firstWorld', label: 'Primary World', type: 'text', placeholder: 'world' },
+    { name: 'firstHealth', label: 'Primary Health', type: 'slider', min: 0, max: 20, step: 0.5, default: '5' },
+    { name: 'firstGameMode', label: 'Primary Game Mode', type: 'select', options: GAME_MODE_OPTIONS, default: 'SURVIVAL' },
+    { name: 'firstCooldownName', label: 'Primary Cooldown', type: 'text', placeholder: 'my_cooldown' },
+    { name: 'combinator', label: 'Combine With', type: 'select', options: BRANCH_COMBINATOR_OPTIONS, default: 'AND' },
+    { name: 'secondType', label: 'Secondary Condition', type: 'select', options: BRANCH_CONDITION_TYPE_OPTIONS, default: 'None' },
+    { name: 'secondPermission', label: 'Secondary Permission', type: 'text', placeholder: 'myplugin.vip' },
+    { name: 'secondItemType', label: 'Secondary Item', type: 'grouped-select', options: ITEM_OPTIONS },
+    { name: 'secondAmount', label: 'Secondary Item Amount', type: 'number', min: 1, max: 64, default: '1' },
+    { name: 'secondWorld', label: 'Secondary World', type: 'text', placeholder: 'world' },
+    { name: 'secondHealth', label: 'Secondary Health', type: 'slider', min: 0, max: 20, step: 0.5, default: '5' },
+    { name: 'secondGameMode', label: 'Secondary Game Mode', type: 'select', options: GAME_MODE_OPTIONS, default: 'SURVIVAL' },
+    { name: 'secondCooldownName', label: 'Secondary Cooldown', type: 'text', placeholder: 'my_cooldown' },
+  ],
+  BranchElse: [],
+  BranchEndIf: [],
   HasPermission: [
     { name: 'permission', label: 'Permission Node', type: 'text', placeholder: 'myplugin.admin' },
   ],
