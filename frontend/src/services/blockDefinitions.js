@@ -274,9 +274,9 @@ export const DEFAULT_BLOCKS = {
       type: 'action',
       id: 'give-item',
       name: 'GiveItem',
-      description: 'Give an item to the player',
+      description: 'Give an item to the player (supports custom names, lore, enchantments)',
       color: '#27ae60',
-      properties: { itemType: '', amount: '1' },
+      properties: { itemType: '', amount: '1', displayName: '', lore: '', enchantments: '', itemFlags: '' },
       children: []
     },
     {
@@ -655,6 +655,114 @@ export const DEFAULT_BLOCKS = {
       description: 'Execute command as player',
       color: '#9b59b6',
       properties: { command: '' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'string-arg',
+      name: 'StringArg',
+      description: 'Declare a typed string command argument',
+      color: '#16a085',
+      properties: { argName: 'textArg', required: 'true', defaultValue: '' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'player-arg',
+      name: 'PlayerArg',
+      description: 'Declare a typed player command argument',
+      color: '#16a085',
+      properties: { argName: 'targetPlayer', required: 'true' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'integer-arg',
+      name: 'IntegerArg',
+      description: 'Declare a typed integer command argument',
+      color: '#16a085',
+      properties: { argName: 'amount', required: 'true', defaultValue: '1', min: '0', max: '100' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'delay-action',
+      name: 'DelayAction',
+      description: 'Execute following actions after a delay',
+      color: '#8e44ad',
+      properties: { delayTicks: '20' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'repeat-action',
+      name: 'RepeatAction',
+      description: 'Repeat following actions at interval',
+      color: '#8e44ad',
+      properties: { intervalTicks: '20', repeatCount: '' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'set-cooldown',
+      name: 'SetCooldown',
+      description: 'Set a cooldown timer for the player',
+      color: '#8e44ad',
+      properties: { cooldownName: '', duration: '5', cooldownMessage: '' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'check-cooldown',
+      name: 'CheckCooldown',
+      description: 'Only run following actions if player is NOT on cooldown',
+      color: '#f39c12',
+      properties: { cooldownName: '', cooldownMessage: '' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'branch-if',
+      name: 'BranchIf',
+      description: 'Start an explicit if branch with optional AND/OR second condition',
+      color: '#f39c12',
+      properties: {
+        firstType: 'HasPermission',
+        firstPermission: '',
+        firstItemType: 'DIAMOND',
+        firstAmount: '1',
+        firstWorld: 'world',
+        firstHealth: '5',
+        firstGameMode: 'SURVIVAL',
+        firstCooldownName: '',
+        combinator: 'AND',
+        secondType: 'None',
+        secondPermission: '',
+        secondItemType: 'DIAMOND',
+        secondAmount: '1',
+        secondWorld: 'world',
+        secondHealth: '5',
+        secondGameMode: 'SURVIVAL',
+        secondCooldownName: '',
+      },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'branch-else',
+      name: 'BranchElse',
+      description: 'Start else branch for the current BranchIf',
+      color: '#f39c12',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'branch-end-if',
+      name: 'BranchEndIf',
+      description: 'Close the current BranchIf block',
+      color: '#f39c12',
+      properties: {},
       children: []
     },
     {
