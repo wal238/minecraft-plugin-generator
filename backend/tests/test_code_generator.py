@@ -1758,3 +1758,939 @@ class TestTypedCommandArguments:
         assert "targetPlayer = Bukkit.getPlayerExact(args[2]);" in code
         assert "Missing required argument: reason" in code
         assert "Missing required integer argument: amount" in code
+
+
+class TestCustomGUIMenus:
+    """Test GUI Menu action code generation."""
+
+    def test_create_gui(self, generator, base_config):
+        """Test CreateGUI generates inventory creation code."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="event-1",
+                    type=BlockType.EVENT,
+                    name="PlayerJoinEvent",
+                    properties={},
+                    children=["action-1"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="CreateGUI",
+                    properties={"guiTitle": "Shop", "guiRows": "3"},
+                    children=[],
+                ),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+        assert 'Bukkit.createInventory(null, 27, "Shop")' in code
+
+    def test_create_gui_custom_rows(self, generator, base_config):
+        """Test CreateGUI with 6 rows generates 54 slots."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="event-1",
+                    type=BlockType.EVENT,
+                    name="PlayerJoinEvent",
+                    properties={},
+                    children=["action-1"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="CreateGUI",
+                    properties={"guiTitle": "Big Menu", "guiRows": "6"},
+                    children=[],
+                ),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+        assert 'Bukkit.createInventory(null, 54, "Big Menu")' in code
+
+    def test_add_gui_item_with_name(self, generator, base_config):
+        """Test AddGUIItem with display name generates ItemMeta code."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="event-1",
+                    type=BlockType.EVENT,
+                    name="PlayerJoinEvent",
+                    properties={},
+                    children=["action-1", "action-2"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="CreateGUI",
+                    properties={"guiTitle": "Shop", "guiRows": "3"},
+                    children=[],
+                ),
+                Block(
+                    id="action-2",
+                    type=BlockType.ACTION,
+                    name="AddGUIItem",
+                    properties={"slot": "4", "itemType": "DIAMOND", "displayName": "Buy Me", "amount": "1"},
+                    children=[],
+                ),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+        assert "gui.setItem(4, guiItem)" in code
+        assert "Material.DIAMOND" in code
+        assert "Buy Me" in code
+
+    def test_add_gui_item_simple(self, generator, base_config):
+        """Test AddGUIItem without display name generates simple setItem."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="event-1",
+                    type=BlockType.EVENT,
+                    name="PlayerJoinEvent",
+                    properties={},
+                    children=["action-1", "action-2"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="CreateGUI",
+                    properties={"guiTitle": "Menu", "guiRows": "1"},
+                    children=[],
+                ),
+                Block(
+                    id="action-2",
+                    type=BlockType.ACTION,
+                    name="AddGUIItem",
+                    properties={"slot": "0", "itemType": "STONE", "amount": "1"},
+                    children=[],
+                ),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+        assert "gui.setItem(0, new ItemStack(Material.STONE, 1))" in code
+
+    def test_open_gui(self, generator, base_config):
+        """Test OpenGUI generates player.openInventory call."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="event-1",
+                    type=BlockType.EVENT,
+                    name="PlayerJoinEvent",
+                    properties={},
+                    children=["action-1", "action-2"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="CreateGUI",
+                    properties={"guiTitle": "Menu", "guiRows": "3"},
+                    children=[],
+                ),
+                Block(
+                    id="action-2",
+                    type=BlockType.ACTION,
+                    name="OpenGUI",
+                    properties={},
+                    children=[],
+                ),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+        assert "player.openInventory(gui)" in code
+
+    def test_gui_imports(self, generator, base_config):
+        """Test GUI actions add correct imports."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="event-1",
+                    type=BlockType.EVENT,
+                    name="PlayerJoinEvent",
+                    properties={},
+                    children=["action-1", "action-2"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="CreateGUI",
+                    properties={"guiTitle": "Menu", "guiRows": "3"},
+                    children=[],
+                ),
+                Block(
+                    id="action-2",
+                    type=BlockType.ACTION,
+                    name="OpenGUI",
+                    properties={},
+                    children=[],
+                ),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+        assert "import org.bukkit.inventory.Inventory;" in code
+
+    def test_gui_in_command(self, generator, base_config):
+        """Test GUI actions work in command context."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="cmd-1",
+                    type=BlockType.EVENT,
+                    name="CommandEvent",
+                    properties={"commandName": "menu"},
+                    children=["action-1", "action-2"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="CreateGUI",
+                    properties={"guiTitle": "Shop", "guiRows": "3"},
+                    children=[],
+                ),
+                Block(
+                    id="action-2",
+                    type=BlockType.ACTION,
+                    name="OpenGUI",
+                    properties={},
+                    children=[],
+                ),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = result["commands"]["CommandMenu.java"]
+        assert "Bukkit.createInventory" in code
+        assert "player.openInventory(gui)" in code
+
+    def test_open_gui_without_create_gui_is_guarded(self, generator, base_config):
+        """Test OpenGUI without CreateGUI does not generate undefined gui usage."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="cmd-1",
+                    type=BlockType.EVENT,
+                    name="CommandEvent",
+                    properties={"commandName": "menu"},
+                    children=["action-1"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="OpenGUI",
+                    properties={},
+                    children=[],
+                ),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = result["commands"]["CommandMenu.java"]
+        assert "Inventory gui = null;" in code
+        assert "if (gui != null) player.openInventory(gui);" in code
+
+    def test_create_gui_rows_are_clamped_to_valid_chest_size(self, generator, base_config):
+        """Test CreateGUI clamps row count to the valid chest range (1-6)."""
+        config_low = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="event-1",
+                    type=BlockType.EVENT,
+                    name="PlayerJoinEvent",
+                    properties={},
+                    children=["action-1"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="CreateGUI",
+                    properties={"guiTitle": "Menu", "guiRows": "0"},
+                    children=[],
+                ),
+            ],
+        )
+        result_low = generator.generate_all(config_low)
+        code_low = list(result_low["listeners"].values())[0]
+        assert 'Bukkit.createInventory(null, 9, "Menu")' in code_low
+
+        config_high = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="event-2",
+                    type=BlockType.EVENT,
+                    name="PlayerJoinEvent",
+                    properties={},
+                    children=["action-2"],
+                ),
+                Block(
+                    id="action-2",
+                    type=BlockType.ACTION,
+                    name="CreateGUI",
+                    properties={"guiTitle": "Menu", "guiRows": "7"},
+                    children=[],
+                ),
+            ],
+        )
+        result_high = generator.generate_all(config_high)
+        code_high = list(result_high["listeners"].values())[0]
+        assert 'Bukkit.createInventory(null, 54, "Menu")' in code_high
+
+
+class TestBossBars:
+    """Test Boss Bar action code generation."""
+
+    def test_create_boss_bar(self, generator, base_config):
+        """Test CreateBossBar generates correct bar creation code."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="event-1",
+                    type=BlockType.EVENT,
+                    name="PlayerJoinEvent",
+                    properties={},
+                    children=["action-1"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="CreateBossBar",
+                    properties={"title": "Welcome!", "color": "GREEN", "style": "SEGMENTED_6", "progress": "0.5"},
+                    children=[],
+                ),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+        assert 'NamespacedKey bossBarKey = new NamespacedKey(plugin, "welcome")' in code
+        assert "KeyedBossBar bossBar = Bukkit.getBossBar(bossBarKey)" in code
+        assert 'Bukkit.createBossBar(bossBarKey, "Welcome!", BarColor.GREEN, BarStyle.SEGMENTED_6)' in code
+        assert "bossBar.setProgress(0.5)" in code
+        assert "bossBar.addPlayer(player)" in code
+
+    def test_boss_bar_default_values(self, generator, base_config):
+        """Test CreateBossBar with default values."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="event-1",
+                    type=BlockType.EVENT,
+                    name="PlayerJoinEvent",
+                    properties={},
+                    children=["action-1"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="CreateBossBar",
+                    properties={"title": "Bar"},
+                    children=[],
+                ),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+        assert "BarColor.RED" in code
+        assert "BarStyle.SOLID" in code
+
+    def test_boss_bar_imports(self, generator, base_config):
+        """Test boss bar actions add correct imports."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="event-1",
+                    type=BlockType.EVENT,
+                    name="PlayerJoinEvent",
+                    properties={},
+                    children=["action-1"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="CreateBossBar",
+                    properties={"title": "Bar"},
+                    children=[],
+                ),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+        assert "import org.bukkit.NamespacedKey;" in code
+        assert "import org.bukkit.boss.KeyedBossBar;" in code
+        assert "import org.bukkit.boss.BarColor;" in code
+        assert "import org.bukkit.boss.BarStyle;" in code
+
+    def test_boss_bar_in_command(self, generator, base_config):
+        """Test boss bar works in command context."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="cmd-1",
+                    type=BlockType.EVENT,
+                    name="CommandEvent",
+                    properties={"commandName": "bossbar"},
+                    children=["action-1"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="CreateBossBar",
+                    properties={"title": "Event!", "color": "BLUE"},
+                    children=[],
+                ),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = result["commands"]["CommandBossbar.java"]
+        assert "Bukkit.createBossBar" in code
+        assert "import org.bukkit.boss.KeyedBossBar;" in code
+
+    def test_remove_boss_bar_uses_keyed_lookup(self, generator, base_config):
+        """Test RemoveBossBar looks up the generated keyed boss bar and removes it."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="event-1",
+                    type=BlockType.EVENT,
+                    name="PlayerJoinEvent",
+                    properties={},
+                    children=["action-1"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="RemoveBossBar",
+                    properties={"title": "Welcome!"},
+                    children=[],
+                ),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+        assert 'NamespacedKey bossBarKey = new NamespacedKey(plugin, "welcome")' in code
+        assert "KeyedBossBar bossBar = Bukkit.getBossBar(bossBarKey);" in code
+        assert "bossBar.removePlayer(player);" in code
+        assert "Bukkit.removeBossBar(bossBarKey);" in code
+        assert "import org.bukkit.boss.KeyedBossBar;" in code
+
+
+class TestScoreboards:
+    """Test Scoreboard action code generation."""
+
+    def test_set_scoreboard(self, generator, base_config):
+        """Test SetScoreboard generates correct scoreboard code."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="event-1",
+                    type=BlockType.EVENT,
+                    name="PlayerJoinEvent",
+                    properties={},
+                    children=["action-1"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="SetScoreboard",
+                    properties={"title": "Stats", "lines": "Kills: 0|Deaths: 0|Score: 100"},
+                    children=[],
+                ),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+        assert "getNewScoreboard()" in code
+        assert '"display"' in code
+        assert '"Stats"' in code
+        assert '"Kills: 0"' in code
+        assert '"Deaths: 0"' in code
+        assert '"Score: 100"' in code
+        assert "DisplaySlot.SIDEBAR" in code
+        assert "player.setScoreboard(board)" in code
+
+    def test_remove_scoreboard(self, generator, base_config):
+        """Test RemoveScoreboard generates correct code."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="event-1",
+                    type=BlockType.EVENT,
+                    name="PlayerJoinEvent",
+                    properties={},
+                    children=["action-1"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="RemoveScoreboard",
+                    properties={},
+                    children=[],
+                ),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+        assert "player.setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard())" in code
+
+    def test_scoreboard_imports(self, generator, base_config):
+        """Test scoreboard actions add correct imports."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="event-1",
+                    type=BlockType.EVENT,
+                    name="PlayerJoinEvent",
+                    properties={},
+                    children=["action-1"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="SetScoreboard",
+                    properties={"title": "Board", "lines": "Hello"},
+                    children=[],
+                ),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+        assert "import org.bukkit.scoreboard.Scoreboard;" in code
+        assert "import org.bukkit.scoreboard.Objective;" in code
+        assert "import org.bukkit.scoreboard.DisplaySlot;" in code
+
+    def test_scoreboard_in_command(self, generator, base_config):
+        """Test scoreboard works in command context."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="cmd-1",
+                    type=BlockType.EVENT,
+                    name="CommandEvent",
+                    properties={"commandName": "stats"},
+                    children=["action-1"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="SetScoreboard",
+                    properties={"title": "Stats", "lines": "Kills: 0"},
+                    children=[],
+                ),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = result["commands"]["CommandStats.java"]
+        assert "getNewScoreboard()" in code
+        assert "import org.bukkit.scoreboard.Scoreboard;" in code
+
+
+class TestConfigPersistence:
+    """Test Config & Data Persistence action code generation."""
+
+    def test_save_config(self, generator, base_config):
+        """Test SaveConfig generates correct config set/save code."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="event-1",
+                    type=BlockType.EVENT,
+                    name="PlayerJoinEvent",
+                    properties={},
+                    children=["action-1"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="SaveConfig",
+                    properties={"path": "players.%player%.joined", "value": "true"},
+                    children=[],
+                ),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+        assert 'plugin.getConfig().set("players." + (player != null ? player.getName() : "console") + ".joined", "true")' in code
+        assert "plugin.saveConfig()" in code
+
+    def test_send_config_value(self, generator, base_config):
+        """Test SendConfigValue generates correct config read and message code."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="event-1",
+                    type=BlockType.EVENT,
+                    name="PlayerJoinEvent",
+                    properties={},
+                    children=["action-1"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="SendConfigValue",
+                    properties={"path": "welcome.message", "messageFormat": "MOTD: %value%"},
+                    children=[],
+                ),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+        assert 'plugin.getConfig().get("welcome.message"' in code
+        assert 'player.sendMessage(' in code
+
+    def test_config_imports(self, generator, base_config):
+        """Test config actions add JavaPlugin import."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="event-1",
+                    type=BlockType.EVENT,
+                    name="PlayerJoinEvent",
+                    properties={},
+                    children=["action-1"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="SaveConfig",
+                    properties={"path": "data.key", "value": "1"},
+                    children=[],
+                ),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+        assert "import org.bukkit.plugin.java.JavaPlugin;" in code
+
+    def test_config_in_command(self, generator, base_config):
+        """Test config actions work in command context."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="cmd-1",
+                    type=BlockType.EVENT,
+                    name="CommandEvent",
+                    properties={"commandName": "savedata"},
+                    children=["action-1"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="SaveConfig",
+                    properties={"path": "stats.%player%", "value": "1"},
+                    children=[],
+                ),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = result["commands"]["CommandSavedata.java"]
+        assert "plugin.getConfig().set" in code
+        assert "plugin.saveConfig()" in code
+
+    def test_save_config_in_non_player_event_does_not_require_player(self, generator, base_config):
+        """Test SaveConfig does not inject a global player guard in non-player events."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="event-1",
+                    type=BlockType.EVENT,
+                    name="WeatherChangeEvent",
+                    properties={},
+                    children=["action-1"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="SaveConfig",
+                    properties={"path": "global.joined", "value": "true"},
+                    children=[],
+                ),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+        assert "if (player == null) return;" not in code
+        assert 'plugin.getConfig().set("global.joined", "true")' in code
+
+    def test_save_config_player_placeholder_is_safe_without_player(self, generator, base_config):
+        """Test %player% placeholder is guarded in non-player events."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="event-1",
+                    type=BlockType.EVENT,
+                    name="WeatherChangeEvent",
+                    properties={},
+                    children=["action-1"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="SaveConfig",
+                    properties={"path": "players.%player%.joined", "value": "true"},
+                    children=[],
+                ),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+        assert '(player != null ? player.getName() : "console")' in code
+
+
+class TestCustomRecipes:
+    """Test Custom Recipe action code generation."""
+
+    def test_shapeless_recipe(self, generator, base_config):
+        """Test AddShapelessRecipe generates correct recipe code."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="event-1",
+                    type=BlockType.EVENT,
+                    name="PlayerJoinEvent",
+                    properties={},
+                    children=["action-1"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="AddShapelessRecipe",
+                    properties={
+                        "recipeKey": "diamond_from_coal",
+                        "resultItem": "DIAMOND",
+                        "resultAmount": "1",
+                        "ingredients": "COAL,COAL,COAL,COAL",
+                    },
+                    children=[],
+                ),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+        assert 'NamespacedKey key = new NamespacedKey(plugin, "diamond_from_coal")' in code
+        assert "ShapelessRecipe recipe = new ShapelessRecipe(key, new ItemStack(Material.DIAMOND, 1))" in code
+        assert "recipe.addIngredient(Material.COAL)" in code
+        assert "Bukkit.addRecipe(recipe)" in code
+
+    def test_recipe_imports(self, generator, base_config):
+        """Test recipe actions add correct imports."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="event-1",
+                    type=BlockType.EVENT,
+                    name="PlayerJoinEvent",
+                    properties={},
+                    children=["action-1"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="AddShapelessRecipe",
+                    properties={
+                        "recipeKey": "test",
+                        "resultItem": "GOLD_INGOT",
+                        "ingredients": "IRON_INGOT",
+                    },
+                    children=[],
+                ),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+        assert "import org.bukkit.NamespacedKey;" in code
+        assert "import org.bukkit.inventory.ShapelessRecipe;" in code
+
+    def test_recipe_in_command(self, generator, base_config):
+        """Test recipe actions work in command context."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="cmd-1",
+                    type=BlockType.EVENT,
+                    name="CommandEvent",
+                    properties={"commandName": "addrecipe"},
+                    children=["action-1"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="AddShapelessRecipe",
+                    properties={
+                        "recipeKey": "my_recipe",
+                        "resultItem": "DIAMOND",
+                        "resultAmount": "2",
+                        "ingredients": "EMERALD,EMERALD",
+                    },
+                    children=[],
+                ),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = result["commands"]["CommandAddrecipe.java"]
+        assert "ShapelessRecipe" in code
+        assert "import org.bukkit.NamespacedKey;" in code
+
+
+class TestOnGUIClickEvent:
+    """Test GUI click event code generation."""
+
+    def test_on_gui_click_generates_inventory_click_listener(self, generator, base_config):
+        """OnGUIClick should map to InventoryClickEvent with title/slot routing."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="event-1",
+                    type=BlockType.EVENT,
+                    name="OnGUIClick",
+                    properties={"guiTitle": "Shop", "slot": "4", "cancelEvent": "true"},
+                    children=["action-1"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="SendMessage",
+                    properties={"message": "Clicked"},
+                    children=[],
+                ),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+        assert "import org.bukkit.event.inventory.InventoryClickEvent;" in code
+        assert "public void onOnGUIClick(InventoryClickEvent event)" in code
+        assert "if (event.getClickedInventory() != event.getView().getTopInventory()) return;" in code
+        assert 'if (!event.getView().getTitle().equals("Shop")) return;' in code
+        assert "if (event.getRawSlot() != 4) return;" in code
+        assert "event.setCancelled(true);" in code
+        assert 'player.sendMessage("Clicked");' in code
+
+    def test_on_gui_click_slot_optional(self, generator, base_config):
+        """OnGUIClick with -1 slot should not emit slot guard."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="event-1",
+                    type=BlockType.EVENT,
+                    name="OnGUIClick",
+                    properties={"guiTitle": "Shop", "slot": "-1", "cancelEvent": "false"},
+                    children=["action-1"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="SendMessage",
+                    properties={"message": "Any slot"},
+                    children=[],
+                ),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+        assert "if (event.getRawSlot() !=" not in code
+        assert "event.setCancelled(true);" not in code
+
+
+class TestTempVariables:
+    """Test temporary variable action code generation."""
+
+    def test_set_and_get_temp_var(self, generator, base_config):
+        """SetTempVar and GetTempVar should generate local variable map usage."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="event-1",
+                    type=BlockType.EVENT,
+                    name="PlayerJoinEvent",
+                    properties={},
+                    children=["action-1", "action-2"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="SetTempVar",
+                    properties={"varName": "welcome", "value": "Hello %player%"},
+                    children=[],
+                ),
+                Block(
+                    id="action-2",
+                    type=BlockType.ACTION,
+                    name="GetTempVar",
+                    properties={"varName": "welcome", "messageFormat": "Value: %value%"},
+                    children=[],
+                ),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = list(result["listeners"].values())[0]
+        assert "java.util.HashMap<String, String> tempVars = new java.util.HashMap<>();" in code
+        assert 'tempVars.put("welcome", "Hello ' in code
+        assert 'String tempValue = tempVars.getOrDefault("welcome", "");' in code
+        assert 'player.sendMessage("Value: " + tempValue + "");' in code
+
+    def test_temp_var_with_command_arg_placeholder(self, generator, base_config):
+        """SetTempVar should support command argument placeholders."""
+        config = PluginConfig(
+            **base_config,
+            blocks=[
+                Block(
+                    id="cmd-1",
+                    type=BlockType.EVENT,
+                    name="CommandEvent",
+                    properties={"commandName": "setvar"},
+                    children=["action-1", "action-2"],
+                ),
+                Block(
+                    id="action-1",
+                    type=BlockType.ACTION,
+                    name="SetTempVar",
+                    properties={"varName": "picked", "value": "%arg0%"},
+                    children=[],
+                ),
+                Block(
+                    id="action-2",
+                    type=BlockType.ACTION,
+                    name="GetTempVar",
+                    properties={"varName": "picked", "messageFormat": "Picked: %value%"},
+                    children=[],
+                ),
+            ],
+        )
+        result = generator.generate_all(config)
+        code = result["commands"]["CommandSetvar.java"]
+        assert "args.length > 0 ? args[0] : \"\"" in code
+        assert 'String tempValue = tempVars.getOrDefault("picked", "");' in code

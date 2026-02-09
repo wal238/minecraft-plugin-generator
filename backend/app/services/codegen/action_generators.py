@@ -5,6 +5,7 @@ of ``Block`` objects and produces the Java statements that go inside an event
 handler or command executor method body.
 """
 
+import re
 from typing import List
 
 from app.models.block import Block, BlockType
@@ -64,6 +65,15 @@ def generate_action_code(blocks: List[Block], event_name: str = "") -> str:
         "SetCooldown",
         "CheckCooldown",
         "BranchIf",
+        "CreateGUI",
+        "AddGUIItem",
+        "OpenGUI",
+        "CreateBossBar",
+        "RemoveBossBar",
+        "SetScoreboard",
+        "RemoveScoreboard",
+        "GetTempVar",
+        "SendConfigValue",
     }
 
     needs_entity = bool(
@@ -116,12 +126,18 @@ def generate_action_code(blocks: List[Block], event_name: str = "") -> str:
             "SpawnParticles",
         }
     )
-    needs_plugin = bool(action_names & {"GrantPermission", "SetMetadata"})
+    needs_plugin = bool(action_names & {"GrantPermission", "SetMetadata", "SaveConfig", "SendConfigValue", "CreateBossBar", "RemoveBossBar", "AddShapelessRecipe"})
+    needs_gui = bool(action_names & {"CreateGUI", "AddGUIItem", "OpenGUI"})
+    needs_temp_vars = bool(action_names & {"SetTempVar", "GetTempVar"})
 
     is_command = event_name == "CommandEvent"
 
     if needs_plugin:
         lines.append("        JavaPlugin plugin = JavaPlugin.getProvidingPlugin(getClass());")
+    if needs_gui:
+        lines.append("        Inventory gui = null;")
+    if needs_temp_vars:
+        lines.append("        java.util.HashMap<String, String> tempVars = new java.util.HashMap<>();")
     if player_required_actions and not is_command:
         lines.append("        if (player == null) return;")
     if needs_entity and not is_command:
@@ -273,6 +289,30 @@ def generate_action_code(blocks: List[Block], event_name: str = "") -> str:
                 _gen_set_entity_custom_name(lines, props)
             elif block.name == "SetEntityEquipment":
                 _gen_set_entity_equipment(lines, props)
+            elif block.name == "CreateGUI":
+                _gen_create_gui(lines, props)
+            elif block.name == "AddGUIItem":
+                _gen_add_gui_item(lines, props)
+            elif block.name == "OpenGUI":
+                lines.append("        if (gui != null) player.openInventory(gui);")
+            elif block.name == "CreateBossBar":
+                _gen_create_boss_bar(lines, props)
+            elif block.name == "RemoveBossBar":
+                _gen_remove_boss_bar(lines, props)
+            elif block.name == "SetScoreboard":
+                _gen_set_scoreboard(lines, props)
+            elif block.name == "RemoveScoreboard":
+                lines.append("        player.setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());")
+            elif block.name == "SaveConfig":
+                _gen_save_config(lines, props, is_command)
+            elif block.name == "SendConfigValue":
+                _gen_send_config_value(lines, props, is_command)
+            elif block.name == "SetTempVar":
+                _gen_set_temp_var(lines, props, is_command)
+            elif block.name == "GetTempVar":
+                _gen_get_temp_var(lines, props, is_command)
+            elif block.name == "AddShapelessRecipe":
+                _gen_add_shapeless_recipe(lines, props)
             elif block.name == "DelayAction":
                 _gen_delay_action(lines, blocks, block, event_name)
                 break  # remaining blocks are inside the runnable
@@ -1171,3 +1211,168 @@ def _gen_check_cooldown(lines: List[str], props: dict) -> None:
         lines.append(f'            player.sendMessage("{safe_msg}");')
     lines.append(f'            return;')
     lines.append(f'        }}')
+
+
+# ---------------------------------------------------------------------------
+# GUI Menu helpers
+# ---------------------------------------------------------------------------
+
+def _gen_create_gui(lines: List[str], props: dict) -> None:
+    title = sanitize_java_string(props.get("guiTitle", "Menu"))
+    rows = props.get("guiRows", "3")
+    try:
+        normalized_rows = max(1, min(6, int(rows)))
+        slots = normalized_rows * 9
+    except (ValueError, TypeError):
+        slots = 27
+    lines.append(f'        gui = Bukkit.createInventory(null, {slots}, "{title}");')
+
+
+def _gen_add_gui_item(lines: List[str], props: dict) -> None:
+    slot = props.get("slot", "0")
+    item_type = sanitize_java_string(props.get("itemType", "STONE")).upper()
+    display_name = props.get("displayName", "")
+    amount = props.get("amount", "1")
+    lines.append("        if (gui != null) {")
+    if display_name:
+        safe_name = sanitize_java_string(display_name)
+        lines.append(f"            ItemStack guiItem = new ItemStack(Material.{item_type}, {amount});")
+        lines.append(f"            ItemMeta guiMeta = guiItem.getItemMeta();")
+        lines.append(f"            if (guiMeta != null) {{")
+        lines.append(f'                guiMeta.setDisplayName(org.bukkit.ChatColor.translateAlternateColorCodes(\'&\', "{safe_name}"));')
+        lines.append(f"                guiItem.setItemMeta(guiMeta);")
+        lines.append(f"            }}")
+        lines.append(f"            gui.setItem({slot}, guiItem);")
+    else:
+        lines.append(f"            gui.setItem({slot}, new ItemStack(Material.{item_type}, {amount}));")
+    lines.append("        }")
+
+
+# ---------------------------------------------------------------------------
+# Boss Bar helpers
+# ---------------------------------------------------------------------------
+
+def _gen_create_boss_bar(lines: List[str], props: dict) -> None:
+    raw_title = str(props.get("title", "Boss Bar"))
+    title = sanitize_java_string(props.get("title", "Boss Bar"))
+    color = sanitize_java_string(props.get("color", "RED")).upper()
+    style = sanitize_java_string(props.get("style", "SOLID")).upper()
+    progress = props.get("progress", "1.0")
+    key_slug = _boss_bar_key_slug(raw_title)
+    lines.append(f'        NamespacedKey bossBarKey = new NamespacedKey(plugin, "{key_slug}");')
+    lines.append(f"        KeyedBossBar bossBar = Bukkit.getBossBar(bossBarKey);")
+    lines.append(f"        if (bossBar == null) {{")
+    lines.append(f'            bossBar = Bukkit.createBossBar(bossBarKey, "{title}", BarColor.{color}, BarStyle.{style});')
+    lines.append(f"        }}")
+    lines.append(f'        bossBar.setTitle("{title}");')
+    lines.append(f"        bossBar.setColor(BarColor.{color});")
+    lines.append(f"        bossBar.setStyle(BarStyle.{style});")
+    lines.append(f"        bossBar.setProgress({progress});")
+    lines.append(f"        bossBar.addPlayer(player);")
+
+
+def _gen_remove_boss_bar(lines: List[str], props: dict) -> None:
+    raw_title = str(props.get("title", "Boss Bar"))
+    key_slug = _boss_bar_key_slug(raw_title)
+    lines.append(f'        NamespacedKey bossBarKey = new NamespacedKey(plugin, "{key_slug}");')
+    lines.append(f"        KeyedBossBar bossBar = Bukkit.getBossBar(bossBarKey);")
+    lines.append(f"        if (bossBar != null) {{")
+    lines.append(f"            bossBar.removePlayer(player);")
+    lines.append(f"            if (bossBar.getPlayers().isEmpty()) {{")
+    lines.append(f"                Bukkit.removeBossBar(bossBarKey);")
+    lines.append(f"            }}")
+    lines.append(f"        }}")
+
+
+def _boss_bar_key_slug(raw_title: str) -> str:
+    key = re.sub(r"[^a-z0-9/._-]+", "_", raw_title.lower()).strip("._-/")
+    return key or "boss_bar"
+
+
+# ---------------------------------------------------------------------------
+# Scoreboard helpers
+# ---------------------------------------------------------------------------
+
+def _gen_set_scoreboard(lines: List[str], props: dict) -> None:
+    title = sanitize_java_string(props.get("title", "Scoreboard"))
+    lines_raw = props.get("lines", "")
+    score_lines = [sanitize_java_string(l.strip()) for l in lines_raw.split("|") if l.strip()]
+    lines.append(f"        {{")
+    lines.append(f"            Scoreboard board = Bukkit.getScoreboardManager().getNewScoreboard();")
+    lines.append(f'            Objective obj = board.registerNewObjective("display", "dummy", "{title}");')
+    lines.append(f"            obj.setDisplaySlot(DisplaySlot.SIDEBAR);")
+    for i, score_line in enumerate(reversed(score_lines)):
+        lines.append(f'            obj.getScore("{score_line}").setScore({i});')
+    lines.append(f"            player.setScoreboard(board);")
+    lines.append(f"        }}")
+
+
+# ---------------------------------------------------------------------------
+# Config & Data Persistence helpers
+# ---------------------------------------------------------------------------
+
+def _gen_save_config(lines: List[str], props: dict, is_command: bool) -> None:
+    path = sanitize_java_string(props.get("path", "data.key"))
+    value = sanitize_java_string(props.get("value", ""))
+    if "%player%" in path:
+        path = path.replace("%player%", '" + (player != null ? player.getName() : "console") + "')
+    path = replace_arg_placeholders(path, is_command)
+    if "%player%" in value:
+        value = value.replace("%player%", '" + (player != null ? player.getName() : "console") + "')
+    value = replace_arg_placeholders(value, is_command)
+    lines.append(f'        plugin.getConfig().set("{path}", "{value}");')
+    lines.append(f"        plugin.saveConfig();")
+
+
+def _gen_send_config_value(lines: List[str], props: dict, is_command: bool) -> None:
+    path = sanitize_java_string(props.get("path", "data.key"))
+    msg_format = sanitize_java_string(props.get("messageFormat", "Value: %value%"))
+    if "%player%" in path:
+        path = path.replace("%player%", '" + (player != null ? player.getName() : "console") + "')
+    path = replace_arg_placeholders(path, is_command)
+    lines.append(f'        String configVal = String.valueOf(plugin.getConfig().get("{path}", ""));')
+    java_msg = msg_format.replace("%value%", '" + configVal + "')
+    lines.append(f'        player.sendMessage("{java_msg}");')
+
+
+# ---------------------------------------------------------------------------
+# Temporary variables helpers
+# ---------------------------------------------------------------------------
+
+def _gen_set_temp_var(lines: List[str], props: dict, is_command: bool) -> None:
+    key = sanitize_java_string(props.get("varName", "temp_key"))
+    value = sanitize_java_string(props.get("value", ""))
+    if "%player%" in value:
+        value = value.replace("%player%", '" + (player != null ? player.getName() : "console") + "')
+    value = replace_arg_placeholders(value, is_command)
+    lines.append(f'        tempVars.put("{key}", "{value}");')
+
+
+def _gen_get_temp_var(lines: List[str], props: dict, is_command: bool) -> None:
+    key = sanitize_java_string(props.get("varName", "temp_key"))
+    msg_format = sanitize_java_string(props.get("messageFormat", "%value%"))
+    if "%player%" in key:
+        key = key.replace("%player%", '" + (player != null ? player.getName() : "console") + "')
+    key = replace_arg_placeholders(key, is_command)
+    lines.append(f'        String tempValue = tempVars.getOrDefault("{key}", "");')
+    java_msg = msg_format.replace("%value%", '" + tempValue + "')
+    lines.append(f'        player.sendMessage("{java_msg}");')
+
+
+# ---------------------------------------------------------------------------
+# Custom Recipes helpers
+# ---------------------------------------------------------------------------
+
+def _gen_add_shapeless_recipe(lines: List[str], props: dict) -> None:
+    recipe_key = sanitize_java_string(props.get("recipeKey", "custom_recipe")).lower()
+    result_item = sanitize_java_string(props.get("resultItem", "DIAMOND")).upper()
+    result_amount = props.get("resultAmount", "1")
+    ingredients_raw = props.get("ingredients", "COAL")
+    ingredient_list = [sanitize_java_string(i.strip()).upper() for i in ingredients_raw.split(",") if i.strip()]
+    lines.append(f"        {{")
+    lines.append(f'            NamespacedKey key = new NamespacedKey(plugin, "{recipe_key}");')
+    lines.append(f"            ShapelessRecipe recipe = new ShapelessRecipe(key, new ItemStack(Material.{result_item}, {result_amount}));")
+    for ingredient in ingredient_list:
+        lines.append(f"            recipe.addIngredient(Material.{ingredient});")
+    lines.append(f"            Bukkit.addRecipe(recipe);")
+    lines.append(f"        }}")

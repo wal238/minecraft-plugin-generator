@@ -7,7 +7,7 @@ from app.models.plugin_config import PluginConfig
 from app.utils.validators import sanitize_java_string
 
 from .action_generators import generate_action_code
-from .constants import EVENT_IMPORTS, EVENT_PLAYER_ACCESSOR, EVENTS_WITHOUT_PLAYER
+from .constants import EVENT_CLASS_NAMES, EVENT_IMPORTS, EVENT_PLAYER_ACCESSOR, EVENTS_WITHOUT_PLAYER
 from .helpers import safe_java_identifier, to_bool
 
 
@@ -107,7 +107,8 @@ def generate_listener_class(
 ) -> str:
     """Generate a single event listener class."""
     event_name = event_block.name
-    event_import = EVENT_IMPORTS.get(event_name, f"org.bukkit.event.{event_name}")
+    event_java_name = EVENT_CLASS_NAMES.get(event_name, event_name)
+    event_import = EVENT_IMPORTS.get(event_name, f"org.bukkit.event.{event_java_name}")
     player_accessor = EVENT_PLAYER_ACCESSOR.get(event_name, "event.getPlayer()")
     has_no_player = event_name in EVENTS_WITHOUT_PLAYER
 
@@ -189,11 +190,39 @@ def generate_listener_class(
         imports.append("org.bukkit.plugin.java.JavaPlugin")
     if action_names & {"SetCooldown", "CheckCooldown", "BranchIf"}:
         imports.append(f"{package}.util.CooldownManager")
+    if action_names & {"CreateGUI", "AddGUIItem", "OpenGUI"}:
+        imports.append("org.bukkit.Bukkit")
+        imports.append("org.bukkit.inventory.Inventory")
+    if "AddGUIItem" in action_names:
+        imports.append("org.bukkit.inventory.meta.ItemMeta")
+        imports.append("org.bukkit.Material")
+        imports.append("org.bukkit.inventory.ItemStack")
+    if action_names & {"CreateBossBar", "RemoveBossBar"}:
+        imports.append("org.bukkit.Bukkit")
+        imports.append("org.bukkit.NamespacedKey")
+        imports.append("org.bukkit.boss.KeyedBossBar")
+        imports.append("org.bukkit.boss.BarColor")
+        imports.append("org.bukkit.boss.BarStyle")
+    if action_names & {"SetScoreboard", "RemoveScoreboard"}:
+        imports.append("org.bukkit.Bukkit")
+        imports.append("org.bukkit.scoreboard.Scoreboard")
+        imports.append("org.bukkit.scoreboard.Objective")
+        imports.append("org.bukkit.scoreboard.DisplaySlot")
+    if action_names & {"SaveConfig", "SendConfigValue"}:
+        imports.append("org.bukkit.plugin.java.JavaPlugin")
+    if "AddShapelessRecipe" in action_names:
+        imports.append("org.bukkit.Bukkit")
+        imports.append("org.bukkit.NamespacedKey")
+        imports.append("org.bukkit.inventory.ShapelessRecipe")
+        imports.append("org.bukkit.Material")
+        imports.append("org.bukkit.inventory.ItemStack")
+        imports.append("org.bukkit.plugin.java.JavaPlugin")
 
     import_lines = "\n".join(f"import {imp};" for imp in sorted(set(imports)))
 
     # Generate action code
     action_code = generate_action_code(child_blocks, event_name)
+    event_prelude = _generate_event_prelude(event_block)
 
     # Generate player variable line (or null check for entity events)
     if has_no_player:
@@ -211,10 +240,39 @@ def generate_listener_class(
 public class EventListener{index} implements Listener {{
 
     @EventHandler
-    public void on{event_name}({event_name} event) {{
-{player_line}{action_code}    }}
+    public void on{event_name}({event_java_name} event) {{
+{player_line}{event_prelude}{action_code}    }}
 }}
 """
+
+
+def _generate_event_prelude(event_block: Block) -> str:
+    """Generate event-specific guard/prelude code before actions."""
+    if event_block.name != "OnGUIClick":
+        return ""
+
+    props = event_block.properties or {}
+    lines: List[str] = [
+        "        if (event.getClickedInventory() == null) return;",
+        "        if (event.getClickedInventory() != event.getView().getTopInventory()) return;",
+    ]
+
+    gui_title = sanitize_java_string(str(props.get("guiTitle", "")).strip())
+    if gui_title:
+        lines.append(f'        if (!event.getView().getTitle().equals("{gui_title}")) return;')
+
+    slot_raw = str(props.get("slot", "")).strip()
+    try:
+        slot = int(slot_raw) if slot_raw else -1
+    except ValueError:
+        slot = -1
+    if slot >= 0:
+        lines.append(f"        if (event.getRawSlot() != {slot}) return;")
+
+    if to_bool(props.get("cancelEvent", True), True):
+        lines.append("        event.setCancelled(true);")
+
+    return "\n".join(lines) + "\n"
 
 
 def generate_commands(config: PluginConfig) -> Dict[str, str]:
@@ -379,6 +437,33 @@ def generate_command_class(
         imports.append("org.bukkit.block.Block")
     if action_names & {"SetCooldown", "CheckCooldown", "BranchIf"}:
         imports.append(f"{package}.util.CooldownManager")
+    if action_names & {"CreateGUI", "AddGUIItem", "OpenGUI"}:
+        imports.append("org.bukkit.Bukkit")
+        imports.append("org.bukkit.inventory.Inventory")
+    if "AddGUIItem" in action_names:
+        imports.append("org.bukkit.inventory.meta.ItemMeta")
+        imports.append("org.bukkit.Material")
+        imports.append("org.bukkit.inventory.ItemStack")
+    if action_names & {"CreateBossBar", "RemoveBossBar"}:
+        imports.append("org.bukkit.Bukkit")
+        imports.append("org.bukkit.NamespacedKey")
+        imports.append("org.bukkit.boss.KeyedBossBar")
+        imports.append("org.bukkit.boss.BarColor")
+        imports.append("org.bukkit.boss.BarStyle")
+    if action_names & {"SetScoreboard", "RemoveScoreboard"}:
+        imports.append("org.bukkit.Bukkit")
+        imports.append("org.bukkit.scoreboard.Scoreboard")
+        imports.append("org.bukkit.scoreboard.Objective")
+        imports.append("org.bukkit.scoreboard.DisplaySlot")
+    if action_names & {"SaveConfig", "SendConfigValue"}:
+        imports.append("org.bukkit.plugin.java.JavaPlugin")
+    if "AddShapelessRecipe" in action_names:
+        imports.append("org.bukkit.Bukkit")
+        imports.append("org.bukkit.NamespacedKey")
+        imports.append("org.bukkit.inventory.ShapelessRecipe")
+        imports.append("org.bukkit.Material")
+        imports.append("org.bukkit.inventory.ItemStack")
+        imports.append("org.bukkit.plugin.java.JavaPlugin")
 
     import_lines = "\n".join(f"import {imp};" for imp in sorted(set(imports)))
 
