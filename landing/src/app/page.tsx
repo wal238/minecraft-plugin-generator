@@ -29,7 +29,6 @@ const comparisonRows: { feature: string; starter: string; premium: string; pro: 
   { feature: 'Scoreboards', starter: '\u2717', premium: '\u2713', pro: '\u2713' },
   { feature: 'Config Persistence', starter: '\u2717', premium: '\u2713', pro: '\u2713' },
   { feature: 'API Access', starter: '\u2717', premium: '\u2717', pro: '\u2713' },
-  { feature: 'Team Members', starter: '0', premium: '0', pro: '5' },
   { feature: 'Watermark', starter: 'Yes', premium: 'No', pro: 'No' },
   { feature: 'Support', starter: 'Community', premium: 'Priority', pro: 'Priority' },
 ];
