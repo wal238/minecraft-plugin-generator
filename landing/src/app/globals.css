@@ -1,0 +1,301 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+@import "tailwindcss";
+
+/* ============================================================
+   MINECRAFT PLUGIN BUILDER — DESIGN SYSTEM
+   ============================================================ */
+
+:root {
+  /* Brand Colors */
+  --mc-orange: #FF6B35;
+  --mc-orange-dark: #CC5529;
+  --mc-green: #4CAF50;
+  --mc-green-dark: #388E3C;
+  --mc-blue: #2196F3;
+  --mc-blue-dark: #1976D2;
+  --mc-red: #F44336;
+  --mc-red-dark: #C62828;
+  --mc-yellow: #FFC107;
+  --mc-yellow-dark: #F9A825;
+  --mc-purple: #9C27B0;
+  --mc-purple-dark: #7B1FA2;
+  --mc-gray: #757575;
+  --mc-gray-dark: #424242;
+
+  /* Background */
+  --bg-primary: #0A0A0A;
+  --bg-secondary: #141414;
+  --bg-card: #1A1A2E;
+  --bg-card-hover: #222240;
+
+  /* Text */
+  --text-primary: #ECECEC;
+  --text-secondary: #A0A0A0;
+  --text-muted: #666666;
+
+  /* Spacing */
+  --section-padding: 5rem 1.5rem;
+
+  /* Font families */
+  --font-pixel: 'Press Start 2P', monospace;
+  --font-body: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ============================================================
+   BASE STYLES
+   ============================================================ */
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Pixel font for headings */
+h1, h2, h3, h4 {
+  font-family: var(--font-pixel);
+  line-height: 1.4;
+}
+
+/* ============================================================
+   MINECRAFT BUTTON SYSTEM
+   ============================================================ */
+
+.mc-btn {
+  font-family: var(--font-pixel);
+  font-size: 0.75rem;
+  padding: 0.875rem 1.75rem;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.mc-btn:hover {
+  transform: scale(1.02) translateY(-1px);
+}
+
+.mc-btn:active {
+  transform: translate(2px, 2px);
+}
+
+/* Color variants */
+.mc-btn-orange {
+  background: var(--mc-orange);
+  color: white;
+  box-shadow: 4px 4px 0 var(--mc-orange-dark);
+}
+.mc-btn-orange:hover {
+  box-shadow: 6px 6px 0 var(--mc-orange-dark);
+}
+.mc-btn-orange:active {
+  box-shadow: 2px 2px 0 var(--mc-orange-dark);
+}
+
+.mc-btn-green {
+  background: var(--mc-green);
+  color: white;
+  box-shadow: 4px 4px 0 var(--mc-green-dark);
+}
+.mc-btn-green:hover {
+  box-shadow: 6px 6px 0 var(--mc-green-dark);
+}
+.mc-btn-green:active {
+  box-shadow: 2px 2px 0 var(--mc-green-dark);
+}
+
+.mc-btn-blue {
+  background: var(--mc-blue);
+  color: white;
+  box-shadow: 4px 4px 0 var(--mc-blue-dark);
+}
+.mc-btn-blue:hover {
+  box-shadow: 6px 6px 0 var(--mc-blue-dark);
+}
+.mc-btn-blue:active {
+  box-shadow: 2px 2px 0 var(--mc-blue-dark);
+}
+
+.mc-btn-red {
+  background: var(--mc-red);
+  color: white;
+  box-shadow: 4px 4px 0 var(--mc-red-dark);
+}
+.mc-btn-red:hover {
+  box-shadow: 6px 6px 0 var(--mc-red-dark);
+}
+.mc-btn-red:active {
+  box-shadow: 2px 2px 0 var(--mc-red-dark);
+}
+
+.mc-btn-outline {
+  background: transparent;
+  color: var(--text-primary);
+  border: 2px solid var(--mc-gray);
+  box-shadow: 4px 4px 0 var(--mc-gray-dark);
+}
+.mc-btn-outline:hover {
+  border-color: var(--mc-orange);
+  box-shadow: 6px 6px 0 var(--mc-gray-dark);
+}
+.mc-btn-outline:active {
+  box-shadow: 2px 2px 0 var(--mc-gray-dark);
+}
+
+/* ============================================================
+   MINECRAFT CARD
+   ============================================================ */
+
+.mc-card {
+  background: var(--bg-card);
+  border: 2px solid rgba(255, 255, 255, 0.06);
+  padding: 2rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.mc-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* ============================================================
+   SCROLL REVEAL ANIMATION
+   ============================================================ */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Staggered children */
+.reveal-stagger > * {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.reveal-stagger.visible > *:nth-child(1) { transition-delay: 0ms; opacity: 1; transform: translateY(0); }
+.reveal-stagger.visible > *:nth-child(2) { transition-delay: 100ms; opacity: 1; transform: translateY(0); }
+.reveal-stagger.visible > *:nth-child(3) { transition-delay: 200ms; opacity: 1; transform: translateY(0); }
+.reveal-stagger.visible > *:nth-child(4) { transition-delay: 300ms; opacity: 1; transform: translateY(0); }
+.reveal-stagger.visible > *:nth-child(5) { transition-delay: 400ms; opacity: 1; transform: translateY(0); }
+.reveal-stagger.visible > *:nth-child(6) { transition-delay: 500ms; opacity: 1; transform: translateY(0); }
+
+/* ============================================================
+   SECTION LAYOUT
+   ============================================================ */
+
+.section {
+  padding: var(--section-padding);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.section-title {
+  font-family: var(--font-pixel);
+  font-size: clamp(1.25rem, 3vw, 2rem);
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+/* ============================================================
+   PRICING CARD HIGHLIGHT
+   ============================================================ */
+
+.pricing-card-highlighted {
+  border: 2px solid var(--mc-green);
+  box-shadow: 0 0 30px rgba(76, 175, 80, 0.15);
+  position: relative;
+}
+
+.pricing-card-highlighted::before {
+  content: 'MOST POPULAR';
+  font-family: var(--font-pixel);
+  font-size: 0.5rem;
+  background: var(--mc-green);
+  color: white;
+  padding: 0.375rem 1rem;
+  position: absolute;
+  top: -0.875rem;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+/* ============================================================
+   ACCORDION
+   ============================================================ */
+
+.accordion-item {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.accordion-trigger {
+  font-family: var(--font-pixel);
+  font-size: 0.7rem;
+  width: 100%;
+  text-align: left;
+  padding: 1.25rem 0;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.accordion-trigger:hover {
+  color: var(--mc-orange);
+}
+
+.accordion-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+  color: var(--text-secondary);
+  line-height: 1.8;
+}
+
+.accordion-content.open {
+  max-height: 500px;
+  padding-bottom: 1.25rem;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 768px) {
+  :root {
+    --section-padding: 3rem 1rem;
+  }
+
+  .mc-btn {
+    font-size: 0.625rem;
+    padding: 0.75rem 1.25rem;
+  }
+}

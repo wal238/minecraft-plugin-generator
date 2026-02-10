@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     PORT: int = 8000
     DEBUG: bool = False
 
+    # Database
+    DATABASE_URL: str = "postgresql://mcplugin:mcplugin@localhost:5432/mcplugin"
+
     # Directories
     TEMP_DIR: Path = Path("/tmp")
     DOWNLOADS_DIR: Path = Path("./downloads")
