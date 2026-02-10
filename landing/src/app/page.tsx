@@ -1,65 +1,188 @@
-import Image from "next/image";
+import { Navbar } from '@/components/landing/Navbar';
+import { Hero } from '@/components/landing/Hero';
+import { FeaturesGrid } from '@/components/landing/FeaturesGrid';
+import { PricingSection } from '@/components/landing/PricingSection';
+import { HowItWorks } from '@/components/landing/HowItWorks';
+import { FAQ } from '@/components/landing/FAQ';
+import { FinalCTA } from '@/components/landing/FinalCTA';
+import { Footer } from '@/components/landing/Footer';
+import { AnimatedSection } from '@/components/ui/AnimatedSection';
+
+export const metadata = {
+  title: 'MC Plugin Builder — Create Minecraft Plugins Without Code',
+  description:
+    'Drag-and-drop Minecraft plugin builder for Paper 1.21.1. No Java knowledge required. Build, generate, and download production-ready plugins.',
+};
+
+/* ------------------------------------------------------------------ */
+/*  Feature Comparison Table                                          */
+/* ------------------------------------------------------------------ */
+
+const comparisonRows: { feature: string; starter: string; premium: string; pro: string }[] = [
+  { feature: 'Projects', starter: '1', premium: 'Unlimited', pro: 'Unlimited' },
+  { feature: 'Builds per Month', starter: '1', premium: '5', pro: '20' },
+  { feature: 'Max Events', starter: '4', premium: '20', pro: 'Unlimited' },
+  { feature: 'Max Actions', starter: '8', premium: '50', pro: 'Unlimited' },
+  { feature: 'Custom Commands', starter: '\u2713', premium: '\u2713', pro: '\u2713' },
+  { feature: 'Custom GUIs', starter: '\u2717', premium: '\u2713', pro: '\u2713' },
+  { feature: 'Boss Bars', starter: '\u2717', premium: '\u2713', pro: '\u2713' },
+  { feature: 'Scoreboards', starter: '\u2717', premium: '\u2713', pro: '\u2713' },
+  { feature: 'Config Persistence', starter: '\u2717', premium: '\u2713', pro: '\u2713' },
+  { feature: 'API Access', starter: '\u2717', premium: '\u2717', pro: '\u2713' },
+  { feature: 'Team Members', starter: '0', premium: '0', pro: '5' },
+  { feature: 'Watermark', starter: 'Yes', premium: 'No', pro: 'No' },
+  { feature: 'Support', starter: 'Community', premium: 'Priority', pro: 'Priority' },
+];
+
+function FeatureComparison() {
+  const checkColor = 'var(--mc-green)';
+  const crossColor = 'var(--text-muted)';
+
+  function cellStyle(value: string): React.CSSProperties {
+    if (value === '\u2713') return { color: checkColor, fontFamily: 'var(--font-pixel)', fontSize: '0.65rem' };
+    if (value === '\u2717') return { color: crossColor, fontFamily: 'var(--font-pixel)', fontSize: '0.65rem' };
+    return { color: 'var(--text-secondary)', fontFamily: 'var(--font-body)', fontSize: '0.85rem' };
+  }
+
+  return (
+    <section className="section">
+      <AnimatedSection>
+        <h2 className="section-title" style={{ color: 'var(--text-primary)' }}>
+          COMPARE PLANS
+        </h2>
+      </AnimatedSection>
+
+      <AnimatedSection>
+        <div style={{ overflowX: 'auto' }}>
+          <table
+            style={{
+              width: '100%',
+              borderCollapse: 'collapse',
+              minWidth: 520,
+            }}
+          >
+            <thead>
+              <tr>
+                <th
+                  style={{
+                    fontFamily: 'var(--font-pixel)',
+                    fontSize: '0.6rem',
+                    color: 'var(--text-muted)',
+                    textAlign: 'left',
+                    padding: '1rem 0.75rem',
+                    borderBottom: '2px solid rgba(255, 255, 255, 0.1)',
+                  }}
+                >
+                  Feature
+                </th>
+                <th
+                  style={{
+                    fontFamily: 'var(--font-pixel)',
+                    fontSize: '0.6rem',
+                    color: 'var(--mc-orange)',
+                    textAlign: 'center',
+                    padding: '1rem 0.75rem',
+                    borderBottom: '2px solid rgba(255, 255, 255, 0.1)',
+                  }}
+                >
+                  Starter
+                </th>
+                <th
+                  style={{
+                    fontFamily: 'var(--font-pixel)',
+                    fontSize: '0.6rem',
+                    color: 'var(--mc-green)',
+                    textAlign: 'center',
+                    padding: '1rem 0.75rem',
+                    borderBottom: '2px solid rgba(255, 255, 255, 0.1)',
+                  }}
+                >
+                  Premium
+                </th>
+                <th
+                  style={{
+                    fontFamily: 'var(--font-pixel)',
+                    fontSize: '0.6rem',
+                    color: 'var(--mc-yellow)',
+                    textAlign: 'center',
+                    padding: '1rem 0.75rem',
+                    borderBottom: '2px solid rgba(255, 255, 255, 0.1)',
+                  }}
+                >
+                  Pro
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {comparisonRows.map((row) => (
+                <tr key={row.feature}>
+                  <td
+                    style={{
+                      fontFamily: 'var(--font-body)',
+                      fontSize: '0.85rem',
+                      color: 'var(--text-secondary)',
+                      padding: '0.75rem',
+                      borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                    }}
+                  >
+                    {row.feature}
+                  </td>
+                  <td
+                    style={{
+                      textAlign: 'center',
+                      padding: '0.75rem',
+                      borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                      ...cellStyle(row.starter),
+                    }}
+                  >
+                    {row.starter}
+                  </td>
+                  <td
+                    style={{
+                      textAlign: 'center',
+                      padding: '0.75rem',
+                      borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                      ...cellStyle(row.premium),
+                    }}
+                  >
+                    {row.premium}
+                  </td>
+                  <td
+                    style={{
+                      textAlign: 'center',
+                      padding: '0.75rem',
+                      borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                      ...cellStyle(row.pro),
+                    }}
+                  >
+                    {row.pro}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </AnimatedSection>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Page                                                              */
+/* ------------------------------------------------------------------ */
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <>
+      <Navbar />
+      <Hero />
+      <FeaturesGrid />
+      <PricingSection />
+      <FeatureComparison />
+      <HowItWorks />
+      <FAQ />
+      <FinalCTA />
+      <Footer />
+    </>
   );
 }
