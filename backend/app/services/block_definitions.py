@@ -239,6 +239,19 @@ class BlockDefinitionService:
                     "properties": [],
                     "category": "server",
                 },
+                {
+                    "id": "on-gui-click",
+                    "name": "OnGUIClick",
+                    "type": "event",
+                    "description": "Fired when a player clicks inside an inventory GUI",
+                    "color": "#1abc9c",
+                    "category": "player",
+                    "properties": [
+                        {"name": "guiTitle", "type": "string", "required": False, "placeholder": "My Menu"},
+                        {"name": "slot", "type": "string", "required": False, "placeholder": "-1 (any slot)"},
+                        {"name": "cancelEvent", "type": "string", "required": False, "placeholder": "true"},
+                    ],
+                },
                 # Command Events
                 {
                     "id": "command-event",
@@ -921,6 +934,143 @@ class BlockDefinitionService:
                         {"name": "defaultValue", "type": "string", "required": False, "placeholder": "1"},
                         {"name": "min", "type": "string", "required": False, "placeholder": "0"},
                         {"name": "max", "type": "string", "required": False, "placeholder": "100"},
+                    ],
+                },
+                # GUI Menus
+                {
+                    "id": "create-gui",
+                    "name": "CreateGUI",
+                    "type": "action",
+                    "description": "Create a chest GUI inventory",
+                    "color": "#1abc9c",
+                    "properties": [
+                        {"name": "guiTitle", "type": "string", "required": True, "placeholder": "My Menu"},
+                        {"name": "guiRows", "type": "string", "required": False, "placeholder": "3"},
+                    ],
+                },
+                {
+                    "id": "add-gui-item",
+                    "name": "AddGUIItem",
+                    "type": "action",
+                    "description": "Add an item to the GUI at a specific slot",
+                    "color": "#1abc9c",
+                    "properties": [
+                        {"name": "slot", "type": "string", "required": True, "placeholder": "0"},
+                        {"name": "itemType", "type": "string", "required": True, "placeholder": "DIAMOND"},
+                        {"name": "displayName", "type": "string", "required": False, "placeholder": "Click Me"},
+                        {"name": "amount", "type": "string", "required": False, "placeholder": "1"},
+                    ],
+                },
+                {
+                    "id": "open-gui",
+                    "name": "OpenGUI",
+                    "type": "action",
+                    "description": "Open the GUI for the player",
+                    "color": "#1abc9c",
+                    "properties": [],
+                },
+                # Temporary Variables
+                {
+                    "id": "set-temp-var",
+                    "name": "SetTempVar",
+                    "type": "action",
+                    "description": "Set a temporary variable for this event execution",
+                    "color": "#34495e",
+                    "properties": [
+                        {"name": "varName", "type": "string", "required": True, "placeholder": "selected_item"},
+                        {"name": "value", "type": "string", "required": True, "placeholder": "%player%_value"},
+                    ],
+                },
+                {
+                    "id": "get-temp-var",
+                    "name": "GetTempVar",
+                    "type": "action",
+                    "description": "Read a temporary variable and send it to the player",
+                    "color": "#34495e",
+                    "properties": [
+                        {"name": "varName", "type": "string", "required": True, "placeholder": "selected_item"},
+                        {"name": "messageFormat", "type": "string", "required": False, "placeholder": "Value: %value%"},
+                    ],
+                },
+                # Boss Bar
+                {
+                    "id": "create-boss-bar",
+                    "name": "CreateBossBar",
+                    "type": "action",
+                    "description": "Create and show a boss bar to the player",
+                    "color": "#e91e63",
+                    "properties": [
+                        {"name": "title", "type": "string", "required": True, "placeholder": "Boss Bar Title"},
+                        {"name": "color", "type": "string", "required": False, "placeholder": "RED"},
+                        {"name": "style", "type": "string", "required": False, "placeholder": "SOLID"},
+                        {"name": "progress", "type": "string", "required": False, "placeholder": "1.0"},
+                    ],
+                },
+                {
+                    "id": "remove-boss-bar",
+                    "name": "RemoveBossBar",
+                    "type": "action",
+                    "description": "Remove a boss bar from the player",
+                    "color": "#e91e63",
+                    "properties": [
+                        {"name": "title", "type": "string", "required": True, "placeholder": "Boss Bar Title"},
+                    ],
+                },
+                # Scoreboard
+                {
+                    "id": "set-scoreboard",
+                    "name": "SetScoreboard",
+                    "type": "action",
+                    "description": "Create and display a scoreboard to the player",
+                    "color": "#ff9800",
+                    "properties": [
+                        {"name": "title", "type": "string", "required": True, "placeholder": "My Scoreboard"},
+                        {"name": "lines", "type": "string", "required": True, "placeholder": "Line 1|Line 2|Line 3"},
+                    ],
+                },
+                {
+                    "id": "remove-scoreboard",
+                    "name": "RemoveScoreboard",
+                    "type": "action",
+                    "description": "Remove the custom scoreboard from the player",
+                    "color": "#ff9800",
+                    "properties": [],
+                },
+                # Config & Data Persistence
+                {
+                    "id": "save-config",
+                    "name": "SaveConfig",
+                    "type": "action",
+                    "description": "Save a value to the plugin config file",
+                    "color": "#607d8b",
+                    "properties": [
+                        {"name": "path", "type": "string", "required": True, "placeholder": "players.%player%.kills"},
+                        {"name": "value", "type": "string", "required": True, "placeholder": "1"},
+                    ],
+                },
+                {
+                    "id": "send-config-value",
+                    "name": "SendConfigValue",
+                    "type": "action",
+                    "description": "Send a config value as a message to the player",
+                    "color": "#607d8b",
+                    "properties": [
+                        {"name": "path", "type": "string", "required": True, "placeholder": "players.%player%.kills"},
+                        {"name": "messageFormat", "type": "string", "required": False, "placeholder": "Your kills: %value%"},
+                    ],
+                },
+                # Custom Recipes
+                {
+                    "id": "add-shapeless-recipe",
+                    "name": "AddShapelessRecipe",
+                    "type": "action",
+                    "description": "Register a shapeless crafting recipe on enable",
+                    "color": "#795548",
+                    "properties": [
+                        {"name": "recipeKey", "type": "string", "required": True, "placeholder": "my_recipe"},
+                        {"name": "resultItem", "type": "string", "required": True, "placeholder": "DIAMOND"},
+                        {"name": "resultAmount", "type": "string", "required": False, "placeholder": "1"},
+                        {"name": "ingredients", "type": "string", "required": True, "placeholder": "COAL,COAL,COAL,COAL"},
                     ],
                 },
                 # Cooldown System

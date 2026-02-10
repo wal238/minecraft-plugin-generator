@@ -645,6 +645,14 @@ export const ACTION_FIELDS = {
     { name: 'duration', label: 'Duration (seconds)', type: 'number', min: 1, max: 86400, default: '5', hint: 'seconds' },
     { name: 'cooldownMessage', label: 'Message (optional)', type: 'text', placeholder: 'Please wait %remaining% seconds!' },
   ],
+  SetTempVar: [
+    { name: 'varName', label: 'Variable Name', type: 'text', placeholder: 'selected_item', required: true },
+    { name: 'value', label: 'Value', type: 'text', placeholder: 'Use text, %player%, or %arg0%' },
+  ],
+  GetTempVar: [
+    { name: 'varName', label: 'Variable Name', type: 'text', placeholder: 'selected_item', required: true },
+    { name: 'messageFormat', label: 'Message Format', type: 'text', placeholder: 'Value: %value%', default: 'Value: %value%' },
+  ],
   CheckCooldown: [
     { name: 'cooldownName', label: 'Cooldown Name', type: 'text', placeholder: 'my_cooldown', required: true },
     { name: 'cooldownMessage', label: 'Deny Message', type: 'text', placeholder: 'Please wait %remaining% seconds!' },
@@ -708,5 +716,10 @@ export const ACTION_FIELDS = {
     { name: 'commandPermission', label: 'Permission', type: 'text', placeholder: 'myplugin.mycommand (leave empty for no permission)' },
     { name: 'commandAliases', label: 'Aliases', type: 'text', placeholder: 'Comma-separated aliases, e.g. mc,mycmd' },
     { name: 'commandTabCompletions', label: 'Tab Completions', type: 'text', placeholder: 'Comma-separated suggestions, e.g. reload,status,help' },
+  ],
+  OnGUIClick: [
+    { name: 'guiTitle', label: 'GUI Title (optional)', type: 'text', placeholder: 'My Menu' },
+    { name: 'slot', label: 'Slot Filter', type: 'number', min: -1, max: 53, default: '-1', hint: '-1 = any slot' },
+    { name: 'cancelEvent', label: 'Cancel Click', type: 'select', options: BOOLEAN_OPTIONS, default: 'true' },
   ],
 };

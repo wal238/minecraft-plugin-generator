@@ -34,6 +34,13 @@ EVENT_IMPORTS: Dict[str, str] = {
     "WeatherChangeEvent": "org.bukkit.event.weather.WeatherChangeEvent",
     "ThunderChangeEvent": "org.bukkit.event.weather.ThunderChangeEvent",
     "ServerListPingEvent": "org.bukkit.event.server.ServerListPingEvent",
+    # GUI Events
+    "OnGUIClick": "org.bukkit.event.inventory.InventoryClickEvent",
+}
+
+# Mapping of block event names to Java event class names
+EVENT_CLASS_NAMES: Dict[str, str] = {
+    "OnGUIClick": "InventoryClickEvent",
 }
 
 # Mapping of event names to the player accessor expression
@@ -67,6 +74,8 @@ EVENT_PLAYER_ACCESSOR: Dict[str, str] = {
     "WeatherChangeEvent": "null",  # No player involved
     "ThunderChangeEvent": "null",
     "ServerListPingEvent": "null",
+    # GUI events
+    "OnGUIClick": "(event.getWhoClicked() instanceof Player ? (Player) event.getWhoClicked() : null)",
 }
 
 # Events that need special handling (no guaranteed player)

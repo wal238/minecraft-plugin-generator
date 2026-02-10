@@ -227,6 +227,15 @@ export const DEFAULT_BLOCKS = {
     },
     {
       type: 'event',
+      id: 'on-gui-click',
+      name: 'OnGUIClick',
+      description: 'Triggered when a player clicks inside an inventory GUI',
+      color: '#1abc9c',
+      properties: { guiTitle: '', slot: '-1', cancelEvent: 'true' },
+      children: []
+    },
+    {
+      type: 'event',
       id: 'command-event',
       name: 'CommandEvent',
       description: 'Triggered when a player runs a custom command',
@@ -718,6 +727,120 @@ export const DEFAULT_BLOCKS = {
       description: 'Only run following actions if player is NOT on cooldown',
       color: '#f39c12',
       properties: { cooldownName: '', cooldownMessage: '' },
+      children: []
+    },
+    // GUI Menus
+    {
+      type: 'action',
+      id: 'create-gui',
+      name: 'CreateGUI',
+      description: 'Create a chest GUI inventory',
+      color: '#1abc9c',
+      properties: { guiTitle: 'My Menu', guiRows: '3' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'add-gui-item',
+      name: 'AddGUIItem',
+      description: 'Add an item to the GUI at a specific slot',
+      color: '#1abc9c',
+      properties: { slot: '0', itemType: 'DIAMOND', displayName: '', amount: '1' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'open-gui',
+      name: 'OpenGUI',
+      description: 'Open the GUI for the player',
+      color: '#1abc9c',
+      properties: {},
+      children: []
+    },
+    // Temporary Variables
+    {
+      type: 'action',
+      id: 'set-temp-var',
+      name: 'SetTempVar',
+      description: 'Set a temporary variable for this event execution',
+      color: '#34495e',
+      properties: { varName: 'selected_item', value: '' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'get-temp-var',
+      name: 'GetTempVar',
+      description: 'Read a temporary variable and send it to the player',
+      color: '#34495e',
+      properties: { varName: 'selected_item', messageFormat: 'Value: %value%' },
+      children: []
+    },
+    // Boss Bar
+    {
+      type: 'action',
+      id: 'create-boss-bar',
+      name: 'CreateBossBar',
+      description: 'Create and show a boss bar to the player',
+      color: '#e91e63',
+      properties: { title: 'Boss Bar', color: 'RED', style: 'SOLID', progress: '1.0' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'remove-boss-bar',
+      name: 'RemoveBossBar',
+      description: 'Remove a boss bar from the player',
+      color: '#e91e63',
+      properties: { title: 'Boss Bar' },
+      children: []
+    },
+    // Scoreboard
+    {
+      type: 'action',
+      id: 'set-scoreboard',
+      name: 'SetScoreboard',
+      description: 'Create and display a scoreboard to the player',
+      color: '#ff9800',
+      properties: { title: 'My Scoreboard', lines: 'Line 1|Line 2|Line 3' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'remove-scoreboard',
+      name: 'RemoveScoreboard',
+      description: 'Remove the custom scoreboard from the player',
+      color: '#ff9800',
+      properties: {},
+      children: []
+    },
+    // Config & Data Persistence
+    {
+      type: 'action',
+      id: 'save-config',
+      name: 'SaveConfig',
+      description: 'Save a value to the plugin config file',
+      color: '#607d8b',
+      properties: { path: 'players.%player%.kills', value: '1' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'send-config-value',
+      name: 'SendConfigValue',
+      description: 'Send a config value as a message to the player',
+      color: '#607d8b',
+      properties: { path: 'players.%player%.kills', messageFormat: 'Your kills: %value%' },
+      children: []
+    },
+    // Custom Recipes
+    {
+      type: 'action',
+      id: 'add-shapeless-recipe',
+      name: 'AddShapelessRecipe',
+      description: 'Register a shapeless crafting recipe',
+      color: '#795548',
+      properties: { recipeKey: 'my_recipe', resultItem: 'DIAMOND', resultAmount: '1', ingredients: 'COAL,COAL,COAL,COAL' },
       children: []
     },
     {
