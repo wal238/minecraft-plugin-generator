@@ -11,13 +11,13 @@ export const PLANS: Record<SubscriptionTier, Plan> = {
     name: 'Premium',
     limits: { plugins: -1, buildsPerPeriod: 5, maxEvents: 20, maxActions: 50,
               watermark: false, apiAccess: false, teamMembers: 0 },
-    stripePriceIds: ['price_premium_monthly', 'price_premium_yearly'],
+    stripePriceIds: ['price_1SziI5GMuUp3wEans8AEvC3S', 'price_1SziIcGMuUp3wEaneZqtsRHs'],
   },
   pro: {
     name: 'Pro',
     limits: { plugins: -1, buildsPerPeriod: 20, maxEvents: -1, maxActions: -1,
               watermark: false, apiAccess: true, teamMembers: 5 },
-    stripePriceIds: ['price_pro_monthly', 'price_pro_yearly'],
+    stripePriceIds: ['price_1SziHmGMuUp3wEanuA1XIRKT', 'price_1SziHmGMuUp3wEanTwRZjPq1'],
   },
 };
 

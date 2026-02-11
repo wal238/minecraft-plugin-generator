@@ -63,8 +63,16 @@ export function AuthForm({ mode }: AuthFormProps) {
       }
       const params = new URLSearchParams(window.location.search);
       const redirect = params.get('redirect');
-      const safePath = redirect?.startsWith('/') && !redirect.startsWith('//') ? redirect : '/account';
-      router.push(safePath);
+      const builderUrl = process.env.NEXT_PUBLIC_BUILDER_URL;
+      const isBuilderRedirect = builderUrl && redirect?.startsWith(builderUrl);
+      const safePath = isBuilderRedirect ? redirect
+        : redirect?.startsWith('/') && !redirect.startsWith('//') ? redirect
+        : '/account';
+      if (isBuilderRedirect) {
+        window.location.href = safePath;
+      } else {
+        router.push(safePath);
+      }
     }
 
     setLoading(false);

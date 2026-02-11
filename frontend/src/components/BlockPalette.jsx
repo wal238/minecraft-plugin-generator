@@ -5,6 +5,7 @@ import { DEFAULT_BLOCKS, TEMPLATES } from '../services/blockDefinitions';
 import { normalizeBlockDefinition } from '../utils/blockSchema';
 import { useDragDrop } from '../hooks/useDragDrop';
 import { useBlocks } from '../hooks/useBlocks';
+import { isBlockLocked, getBlockFeatureLabel } from '../config/tierFeatures';
 import BlockItem from './BlockItem';
 import Tooltip from './Tooltip';
 
@@ -15,6 +16,8 @@ export default function BlockPalette({
   favoritesOnly,
   onToggleFavorite,
   onAddRecent,
+  tier = 'pro',
+  onUpgradeNeeded,
 }) {
   const availableBlocks = usePluginStore((state) => state.availableBlocks);
   const setAvailableBlocks = usePluginStore((state) => state.setAvailableBlocks);
@@ -70,10 +73,16 @@ export default function BlockPalette({
 
   const onDragStart = useCallback(
     (e, block) => {
+      if (isBlockLocked(block.id, tier)) {
+        e.preventDefault();
+        const label = getBlockFeatureLabel(block.id) || block.name;
+        onUpgradeNeeded?.(`${label} requires Premium. Upgrade to use this block.`);
+        return;
+      }
       onAddRecent?.(block);
       handleDragStart(e, block);
     },
-    [handleDragStart, onAddRecent]
+    [handleDragStart, onAddRecent, tier, onUpgradeNeeded]
   );
 
   const onUseTemplate = useCallback(
@@ -154,6 +163,7 @@ export default function BlockPalette({
                   onDragStart={onDragStart}
                   isFavorite
                   onToggleFavorite={onToggleFavorite}
+                  locked={isBlockLocked(block.id, tier)}
                 />
               ))}
             </div>
@@ -168,6 +178,7 @@ export default function BlockPalette({
                   onDragStart={onDragStart}
                   isFavorite={favorites.includes(block.id)}
                   onToggleFavorite={onToggleFavorite}
+                  locked={isBlockLocked(block.id, tier)}
                 />
               ))}
             </div>
@@ -231,6 +242,7 @@ export default function BlockPalette({
             onDragStart={onDragStart}
             isFavorite={favorites.includes(block.id)}
             onToggleFavorite={onToggleFavorite}
+            locked={isBlockLocked(block.id, tier)}
           />
         ))}
       </div>
@@ -250,6 +262,7 @@ export default function BlockPalette({
             onDragStart={onDragStart}
             isFavorite={favorites.includes(block.id)}
             onToggleFavorite={onToggleFavorite}
+            locked={isBlockLocked(block.id, tier)}
           />
         ))}
       </div>
@@ -268,6 +281,7 @@ export default function BlockPalette({
             onDragStart={onDragStart}
             isFavorite={favorites.includes(block.id)}
             onToggleFavorite={onToggleFavorite}
+            locked={isBlockLocked(block.id, tier)}
           />
         ))}
       </div>

@@ -2,19 +2,22 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import usePluginStore from './store/usePluginStore';
 import useAuthStore from './store/useAuthStore';
 import { apiService } from './services/api';
+import { supabase } from './services/supabase';
+import { projectService } from './services/projectService';
 import PluginSettings from './components/PluginSettings';
 import BlockPalette from './components/BlockPalette';
 import Canvas from './components/Canvas';
 import BlockEditor from './components/BlockEditor';
 import ResizablePanel from './components/ResizablePanel';
 import CodePreviewModal from './components/CodePreviewModal';
-import ProjectList from './components/ProjectList';
+import ProjectsDashboard from './components/ProjectsDashboard';
 import UpgradePrompt from './components/UpgradePrompt';
 import WelcomeTour from './components/WelcomeTour';
 import { validateBlocks, normalizeBlockDefinition } from './utils/blockSchema';
 import { validatePluginSettings } from './utils/pluginValidation';
 import { DEFAULT_BLOCKS, TEMPLATES } from './services/blockDefinitions';
 import { useBlocks } from './hooks/useBlocks';
+import { getFeatures, isBlockLocked, getBlockFeatureLabel, PREMIUM_BLOCKS } from './config/tierFeatures';
 import './App.css';
 
 export default function App() {
@@ -41,7 +44,11 @@ export default function App() {
   const signOut = useAuthStore((s) => s.signOut);
 
   const landingUrl = import.meta.env.VITE_LANDING_URL || 'http://localhost:3000';
+  const authEnabled = !!supabase;
 
+  const [currentView, setCurrentView] = useState('editor');
+  const [currentProjectId, setCurrentProjectId] = useState(null);
+  const [currentProjectVersion, setCurrentProjectVersion] = useState(null);
   const [previewFiles, setPreviewFiles] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -50,7 +57,6 @@ export default function App() {
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [quickAddSelection, setQuickAddSelection] = useState('');
   const [templateSelection, setTemplateSelection] = useState('');
-  const [showProjects, setShowProjects] = useState(false);
   const [upgradeMessage, setUpgradeMessage] = useState(null);
   const [buildStatus, setBuildStatus] = useState(null);
   const tourStartRef = useRef(null);
@@ -71,6 +77,13 @@ export default function App() {
   useEffect(() => {
     initialize();
   }, [initialize]);
+
+  // Switch to dashboard when authenticated user is detected
+  useEffect(() => {
+    if (authEnabled && authInitialized && user) {
+      setCurrentView('dashboard');
+    }
+  }, [authEnabled, authInitialized, user]);
 
   useEffect(() => {
     let active = true;
@@ -192,6 +205,18 @@ export default function App() {
     if (!value) return;
     const tpl = TEMPLATES.find((t) => t.id === value);
     if (tpl) {
+      // Check if template uses any premium blocks
+      const t = authEnabled ? useAuthStore.getState().getTier() : 'pro';
+      const allChildren = tpl.children || [];
+      for (const child of allChildren) {
+        const childId = child.id;
+        if (childId && isBlockLocked(childId, t)) {
+          const label = getBlockFeatureLabel(childId) || child.name;
+          setUpgradeMessage(`This recipe uses ${label}, which requires Premium.`);
+          setTemplateSelection('');
+          return;
+        }
+      }
       addTemplate(tpl);
       setTemplateSelection('');
     }
@@ -231,6 +256,30 @@ export default function App() {
     };
   };
 
+  const checkTierLimits = () => {
+    const t = authEnabled ? useAuthStore.getState().getTier() : 'pro';
+    const f = getFeatures(t);
+    const evts = blocks.filter((b) => b.type === 'event').length;
+    const acts = blocks.filter((b) => b.type !== 'event').length;
+
+    if (f.maxEvents !== -1 && evts > f.maxEvents) {
+      setUpgradeMessage(`Free tier allows up to ${f.maxEvents} events. Upgrade to add more.`);
+      return false;
+    }
+    if (f.maxActions !== -1 && acts > f.maxActions) {
+      setUpgradeMessage(`Free tier allows up to ${f.maxActions} actions. Upgrade to add more.`);
+      return false;
+    }
+    for (const block of blocks) {
+      if (isBlockLocked(block.id, t)) {
+        const label = getBlockFeatureLabel(block.id) || block.name;
+        setUpgradeMessage(`"${block.name}" requires Premium. ${label} is a paid feature.`);
+        return false;
+      }
+    }
+    return true;
+  };
+
   const handlePreview = async () => {
     setError(null);
     setSuccessMessage(null);
@@ -250,6 +299,7 @@ export default function App() {
       setError(validationError);
       return;
     }
+    if (!checkTierLimits()) return;
 
     setPreviewLoading(true);
     try {
@@ -288,6 +338,7 @@ export default function App() {
       setError(validationError);
       return;
     }
+    if (!checkTierLimits()) return;
 
     setLoading(true);
     try {
@@ -361,21 +412,136 @@ export default function App() {
       if (config.author) usePluginStore.getState().setAuthor(config.author);
       if (config.blocks) usePluginStore.getState().setBlocks(config.blocks);
     }
+    setCurrentProjectId(project?.id || null);
+    setCurrentProjectVersion(project?.version || null);
+    setCurrentView('editor');
   };
+
+  const handleNewProject = () => {
+    usePluginStore.getState().reset();
+    setCurrentProjectId(null);
+    setCurrentProjectVersion(null);
+    setCurrentView('editor');
+  };
+
+  const handleSaveProject = async () => {
+    const state = usePluginStore.getState();
+    const config = {
+      name: state.name,
+      version: state.version,
+      mainPackage: state.mainPackage,
+      description: state.description,
+      author: state.author,
+      blocks: state.blocks,
+    };
+
+    try {
+      if (currentProjectId) {
+        const updated = await projectService.saveProject(currentProjectId, config, currentProjectVersion);
+        setCurrentProjectVersion(updated.version);
+        setSuccessMessage('Project saved.');
+      } else {
+        const projectName = window.prompt('Project name:', state.name || 'My Plugin');
+        if (!projectName) return;
+        const created = await projectService.createProject(projectName, config);
+        setCurrentProjectId(created.id);
+        setCurrentProjectVersion(created.version);
+        setSuccessMessage('Project created.');
+      }
+    } catch (err) {
+      if (err.message === 'FREE_TIER_LIMIT') {
+        setUpgradeMessage('You have reached the free tier project limit. Upgrade to save more projects.');
+      } else {
+        setError(err.message || 'Failed to save project.');
+      }
+    }
+  };
+
+  // Auth gate — require login when Supabase is configured
+  if (authEnabled && authInitialized && !user) {
+    return (
+      <div className="app auth-gate">
+        <div className="auth-gate-card">
+          <div className="auth-gate-logo">Minecraft Plugin Builder</div>
+          <h1 className="auth-gate-title">Sign in to get started</h1>
+          <p className="auth-gate-subtitle">
+            Create a free account to start building Minecraft plugins
+          </p>
+          <div className="auth-gate-buttons">
+            <a
+              href={`${landingUrl}/signup?redirect=${encodeURIComponent(window.location.origin)}`}
+              className="auth-gate-btn auth-gate-btn-primary"
+            >
+              Create Account
+            </a>
+            <a
+              href={`${landingUrl}/login?redirect=${encodeURIComponent(window.location.origin)}`}
+              className="auth-gate-btn auth-gate-btn-secondary"
+            >
+              Sign In
+            </a>
+          </div>
+          <p className="auth-gate-note">Free tier includes 4 events, 8 actions, and 1 build per month</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Loading spinner while auth initializes
+  if (authEnabled && !authInitialized) {
+    return (
+      <div className="app auth-gate">
+        <div className="spinner" />
+      </div>
+    );
+  }
+
+  // Tier for current user (local dev = pro, no limits)
+  const tier = authEnabled ? useAuthStore.getState().getTier() : 'pro';
+  const features = getFeatures(tier);
+  const eventCount = blocks.filter((b) => b.type === 'event').length;
+  const actionCount = blocks.filter((b) => b.type !== 'event').length;
+
+  if (currentView === 'dashboard' && authEnabled && user) {
+    return (
+      <div className="app">
+        <ProjectsDashboard
+          onNewProject={handleNewProject}
+          onLoadProject={handleLoadProject}
+        />
+        {upgradeMessage && (
+          <UpgradePrompt
+            message={upgradeMessage}
+            onClose={() => setUpgradeMessage(null)}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="app">
       <header className="header">
         <div className="header-title">Minecraft Plugin Builder</div>
-        {user && (
-          <button
-            type="button"
-            className="header-btn"
-            onClick={() => setShowProjects(true)}
-            title="My Projects"
-          >
-            Projects
-          </button>
+        {authEnabled && user && (
+          <>
+            <button
+              type="button"
+              className="header-btn"
+              onClick={() => setCurrentView('dashboard')}
+              title="My Projects"
+            >
+              Projects
+            </button>
+            <button
+              type="button"
+              className="header-btn"
+              onClick={handleSaveProject}
+              title="Save project"
+            >
+              Save
+            </button>
+          </>
         )}
         <button
           type="button"
@@ -460,6 +626,13 @@ export default function App() {
               </option>
             ))}
           </select>
+          {authEnabled && user && (
+            <span className="block-limit-counter">
+              {eventCount}/{features.maxEvents === -1 ? '\u221e' : features.maxEvents} events
+              {' \u00b7 '}
+              {actionCount}/{features.maxActions === -1 ? '\u221e' : features.maxActions} actions
+            </span>
+          )}
           <span data-tour="preview-generate" style={{ display: 'contents' }}>
             <button
               className="preview-btn"
@@ -484,44 +657,46 @@ export default function App() {
           </span>
           {(loading || previewLoading) && <div className="spinner" />}
         </div>
-        <div className="header-auth">
-          {authInitialized && !user && (
-            <a
-              href={`${landingUrl}/login?redirect=${encodeURIComponent(window.location.origin)}`}
-              className="header-btn header-login-btn"
-            >
-              Sign In
-            </a>
-          )}
-          {user && (
-            <>
-              {profile && (
-                <span className={`build-counter${
-                  profile.builds_used_this_period >= (
-                    profile.subscription_tier === 'pro' ? 20
-                    : profile.subscription_tier === 'premium' ? 5
-                    : 1
-                  ) ? ' at-limit' : ''
-                }`}>
-                  {profile.builds_used_this_period}/
-                  {profile.subscription_tier === 'pro' ? 20
-                    : profile.subscription_tier === 'premium' ? 5
-                    : 1} builds
-                </span>
-              )}
-              <span className="header-user-email" title={user.email}>
-                {user.email}
-              </span>
-              <button
-                type="button"
-                className="header-btn header-signout-btn"
-                onClick={signOut}
+        {authEnabled && (
+          <div className="header-auth">
+            {authInitialized && !user && (
+              <a
+                href={`${landingUrl}/login?redirect=${encodeURIComponent(window.location.origin)}`}
+                className="header-btn header-login-btn"
               >
-                Sign Out
-              </button>
-            </>
-          )}
-        </div>
+                Sign In
+              </a>
+            )}
+            {user && (
+              <>
+                {profile && (
+                  <span className={`build-counter${
+                    profile.builds_used_this_period >= (
+                      profile.subscription_tier === 'pro' ? 20
+                      : profile.subscription_tier === 'premium' ? 5
+                      : 1
+                    ) ? ' at-limit' : ''
+                  }`}>
+                    {profile.builds_used_this_period}/
+                    {profile.subscription_tier === 'pro' ? 20
+                      : profile.subscription_tier === 'premium' ? 5
+                      : 1} builds
+                  </span>
+                )}
+                <span className="header-user-email" title={user.email}>
+                  {user.email}
+                </span>
+                <button
+                  type="button"
+                  className="header-btn header-signout-btn"
+                  onClick={signOut}
+                >
+                  Sign Out
+                </button>
+              </>
+            )}
+          </div>
+        )}
       </header>
       <div className="content">
         <aside className="sidebar">
@@ -535,6 +710,8 @@ export default function App() {
             favoritesOnly={favoritesOnly}
             onToggleFavorite={toggleFavorite}
             onAddRecent={addRecent}
+            tier={tier}
+            onUpgradeNeeded={setUpgradeMessage}
           />
         </aside>
         <main className="main-area" data-tour="canvas">
@@ -559,13 +736,6 @@ export default function App() {
       )}
 
       <WelcomeTour onRequestStart={(fn) => { tourStartRef.current = fn; }} />
-
-      {showProjects && (
-        <ProjectList
-          onLoadProject={handleLoadProject}
-          onClose={() => setShowProjects(false)}
-        />
-      )}
 
       {upgradeMessage && (
         <UpgradePrompt

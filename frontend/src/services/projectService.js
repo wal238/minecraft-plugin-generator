@@ -5,7 +5,7 @@ export const projectService = {
     if (!supabase) return [];
     const { data, error } = await supabase
       .from('projects')
-      .select('id, name, version, is_archived, created_at, updated_at')
+      .select('id, name, version, config, is_archived, created_at, updated_at')
       .eq('is_archived', false)
       .order('updated_at', { ascending: false });
     if (error) throw error;
