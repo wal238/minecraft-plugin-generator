@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { Navbar } from '@/components/landing/Navbar';
 import { Hero } from '@/components/landing/Hero';
 import { FeaturesGrid } from '@/components/landing/FeaturesGrid';
@@ -8,10 +9,36 @@ import { FinalCTA } from '@/components/landing/FinalCTA';
 import { Footer } from '@/components/landing/Footer';
 import { AnimatedSection } from '@/components/ui/AnimatedSection';
 
-export const metadata = {
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+
+export const metadata: Metadata = {
   title: 'MC Plugin Builder — Create Minecraft Plugins Without Code',
   description:
-    'Drag-and-drop Minecraft plugin builder for Paper 1.21.1. No Java knowledge required. Build, generate, and download production-ready plugins.',
+    'Drag-and-drop Minecraft plugin builder for Paper 1.21. No Java knowledge required. Free to start.',
+  openGraph: {
+    title: 'MC Plugin Builder — Create Minecraft Plugins Without Code',
+    description:
+      'Drag-and-drop Minecraft plugin builder for Paper 1.21. No Java knowledge required. Free to start.',
+    url: siteUrl,
+    images: [
+      {
+        url: `${siteUrl}/og-image.png`,
+        width: 1200,
+        height: 630,
+        alt: 'MC Plugin Builder - Create Minecraft Plugins Without Code',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'MC Plugin Builder — Create Minecraft Plugins Without Code',
+    description:
+      'Drag-and-drop Minecraft plugin builder for Paper 1.21. No Java knowledge required. Free to start.',
+    images: [`${siteUrl}/og-image.png`],
+  },
+  alternates: {
+    canonical: siteUrl,
+  },
 };
 
 /* ------------------------------------------------------------------ */
@@ -170,9 +197,82 @@ function FeatureComparison() {
 /*  Page                                                              */
 /* ------------------------------------------------------------------ */
 
+const softwareAppJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'MC Plugin Builder',
+  applicationCategory: 'GameApplication',
+  operatingSystem: 'Web',
+  url: siteUrl,
+  description:
+    'Drag-and-drop Minecraft plugin builder for Paper 1.21. No Java knowledge required. Free to start.',
+  offers: [
+    {
+      '@type': 'Offer',
+      name: 'Starter',
+      price: '0',
+      priceCurrency: 'USD',
+      description: '1 project, 1 build/month, 4 events, 8 actions',
+    },
+    {
+      '@type': 'Offer',
+      name: 'Premium',
+      price: '4.99',
+      priceCurrency: 'USD',
+      description: 'Unlimited projects, 5 builds/month, 20 events, 50 actions',
+    },
+    {
+      '@type': 'Offer',
+      name: 'Pro',
+      price: '9.99',
+      priceCurrency: 'USD',
+      description: 'Unlimited projects, 20 builds/month, unlimited events & actions, API access',
+    },
+  ],
+};
+
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [
+    {
+      '@type': 'Question',
+      name: 'Do I need to know Java to use MC Plugin Builder?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'No. MC Plugin Builder uses a visual drag-and-drop editor that generates real Paper API Java code for you. No coding required.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'What Minecraft server versions are supported?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'MC Plugin Builder generates plugins for Paper API 1.21, which is compatible with most modern Minecraft servers.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Is MC Plugin Builder free?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Yes! The Starter plan is completely free and includes 1 project, 1 build per month, and up to 4 events with 8 actions.',
+      },
+    },
+  ],
+};
+
 export default function Home() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareAppJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
       <Navbar />
       <Hero />
       <FeaturesGrid />

@@ -3,6 +3,13 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export async function proxy(request: NextRequest) {
+  // Redirect www to apex domain.
+  if (request.nextUrl.hostname.startsWith('www.')) {
+    const url = request.nextUrl.clone();
+    url.hostname = url.hostname.replace('www.', '');
+    return NextResponse.redirect(url, 301);
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(

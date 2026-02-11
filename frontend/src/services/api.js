@@ -9,6 +9,21 @@ const axiosInstance = axios.create({
   }
 });
 
+// Auth interceptor — attaches JWT if available
+axiosInstance.interceptors.request.use(async (config) => {
+  try {
+    // Dynamic import to avoid circular dependency
+    const { default: useAuthStore } = await import('../store/useAuthStore');
+    const token = await useAuthStore.getState().getAccessToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  } catch {
+    // Auth not available — proceed without token
+  }
+  return config;
+});
+
 export const apiService = {
   async generatePlugin(config) {
     const response = await axiosInstance.post('/generate-plugin', config);
@@ -32,5 +47,16 @@ export const apiService = {
 
   downloadPlugin(downloadId) {
     window.open(`${API_URL}/download/${downloadId}`, '_blank');
-  }
+  },
+
+  // Async build job methods
+  async submitBuildJob(config) {
+    const response = await axiosInstance.post('/build-jobs', config);
+    return response.data;
+  },
+
+  async getBuildJobStatus(jobId) {
+    const response = await axiosInstance.get(`/build-jobs/${jobId}`);
+    return response.data;
+  },
 };

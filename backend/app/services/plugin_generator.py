@@ -27,7 +27,7 @@ class PluginGeneratorService:
         self.file_writer = FileWriterService()
         self.maven_builder = MavenBuilderService()
 
-    async def generate(self, config: PluginConfig) -> str:
+    async def generate(self, config: PluginConfig, watermark: bool = False) -> str:
         """
         Generate a plugin from configuration.
 
@@ -40,7 +40,7 @@ class PluginGeneratorService:
         try:
             # 1. Generate source code
             logger.info("Generating code for plugin '%s'", config.name)
-            files = self.code_generator.generate_all(config)
+            files = self.code_generator.generate_all(config, watermark=watermark)
 
             # 2. Write files to disk
             temp_dir.mkdir(parents=True, exist_ok=True)

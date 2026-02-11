@@ -64,8 +64,10 @@ const BLOCK_HELP = {
   'Custom Action': 'Write any Java code for advanced logic.',
 };
 
-function BlockItem({ block, onDragStart, isFavorite = false, onToggleFavorite }) {
-  const helpText = BLOCK_HELP[block.name] || block.description;
+function BlockItem({ block, onDragStart, isFavorite = false, onToggleFavorite, locked = false }) {
+  const helpText = locked
+    ? `Premium feature \u2014 upgrade to unlock ${block.name}`
+    : BLOCK_HELP[block.name] || block.description;
   const toneClass =
     block.type === 'event'
       ? 'block-tone-event'
@@ -76,11 +78,12 @@ function BlockItem({ block, onDragStart, isFavorite = false, onToggleFavorite })
   return (
     <Tooltip text={helpText} position="right">
       <div
-        className={`block-item ${toneClass}`}
-        draggable
+        className={`block-item ${toneClass}${locked ? ' block-item-locked' : ''}`}
+        draggable={!locked}
         onDragStart={(e) => onDragStart(e, block)}
       >
-        {onToggleFavorite && (
+        {locked && <span className="block-item-lock-icon">{'\ud83d\udd12'}</span>}
+        {onToggleFavorite && !locked && (
           <button
             type="button"
             className={`block-item-favorite ${isFavorite ? 'active' : ''}`}
