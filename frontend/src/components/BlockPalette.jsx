@@ -11,11 +11,25 @@ import Tooltip from './Tooltip';
 
 export default function BlockPalette({
   search,
+  onSearchChange,
   favorites,
   recents,
   favoritesOnly,
+  onFavoritesOnlyChange,
+  onClearRecents,
   onToggleFavorite,
   onAddRecent,
+  quickAddSelection,
+  onQuickAdd,
+  onQuickAddSelectionChange,
+  blocksForMenus,
+  templateSelection,
+  onTemplateSelect,
+  onTemplateSelectionChange,
+  eventCount,
+  actionCount,
+  features,
+  showLimits,
   tier = 'pro',
   onUpgradeNeeded,
 }) {
@@ -142,6 +156,90 @@ export default function BlockPalette({
 
   return (
     <div className="block-palette">
+      <div className="palette-toolbar" data-tour="palette-toolbar">
+        <input
+          type="text"
+          className="palette-toolbar-search"
+          placeholder="Search blocks..."
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+          data-tour="header-search"
+        />
+        <div className="palette-toolbar-row">
+          <label className="palette-toggle">
+            <input
+              type="checkbox"
+              checked={favoritesOnly}
+              onChange={(e) => onFavoritesOnlyChange(e.target.checked)}
+            />
+            Favorites only
+          </label>
+          <button
+            type="button"
+            className="palette-clear-btn"
+            onClick={onClearRecents}
+            disabled={recents.length === 0}
+          >
+            Clear Recents
+          </button>
+        </div>
+        <div className="palette-toolbar-row" data-tour="header-quick-add">
+          <select
+            className="palette-toolbar-select"
+            value={quickAddSelection}
+            onChange={(e) => {
+              const value = e.target.value;
+              onQuickAddSelectionChange(value);
+              onQuickAdd(value);
+            }}
+          >
+            <option value="">Quick Add...</option>
+            {blocksForMenus && (
+              <>
+                <optgroup label="Events">
+                  {blocksForMenus.events.map((b) => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Actions">
+                  {blocksForMenus.actions.map((b) => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Custom">
+                  {blocksForMenus.custom_options.map((b) => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </optgroup>
+              </>
+            )}
+          </select>
+          <select
+            className="palette-toolbar-select"
+            value={templateSelection}
+            onChange={(e) => {
+              const value = e.target.value;
+              onTemplateSelectionChange(value);
+              onTemplateSelect(value);
+            }}
+          >
+            <option value="">Recipes...</option>
+            {TEMPLATES.map((tpl) => (
+              <option key={tpl.id} value={tpl.id}>{tpl.name}</option>
+            ))}
+          </select>
+        </div>
+        {showLimits && features && (
+          <div className="palette-limits">
+            <span className="palette-limit-badge palette-limit-badge-events">
+              {eventCount}/{features.maxEvents === -1 ? '\u221e' : features.maxEvents} events
+            </span>
+            <span className="palette-limit-badge palette-limit-badge-actions">
+              {actionCount}/{features.maxActions === -1 ? '\u221e' : features.maxActions} actions
+            </span>
+          </div>
+        )}
+      </div>
       <h3 className="palette-title">
         Block Palette
         <span className="palette-subtitle">Drag blocks to the canvas</span>

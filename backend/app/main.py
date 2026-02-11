@@ -28,6 +28,14 @@ async def lifespan(app):
             "FATAL: REQUIRE_AUTH=false is not allowed in production. "
             "Set REQUIRE_AUTH=true or ENVIRONMENT=development."
         )
+    if settings.REQUIRE_AUTH:
+        from app.services.supabase_client import get_supabase_admin
+        if not get_supabase_admin():
+            raise RuntimeError(
+                "FATAL: REQUIRE_AUTH=true but Supabase admin client failed to initialize. "
+                "Ensure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set and "
+                "the `supabase` Python package is installed in the active environment."
+            )
     cleanup_orphaned_build_dirs()
     await build_worker.start()
     yield

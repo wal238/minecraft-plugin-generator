@@ -43,7 +43,8 @@ class Settings(BaseSettings):
     ]
 
     class Config:
-        env_file = ".env"
+        # Load backend/.env regardless of process working directory.
+        env_file = str(Path(__file__).resolve().parents[1] / ".env")
         extra = "ignore"
 
 

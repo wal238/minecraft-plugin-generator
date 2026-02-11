@@ -92,11 +92,11 @@ const TOUR_STEPS = [
   },
   {
     id: 'header-toolbar',
-    target: '[data-tour="header-toolbar"]',
+    target: '[data-tour="palette-toolbar"]',
     title: 'Toolbar',
     description:
       'This is your main toolbar. It has search, quick actions, recipes, and buttons to preview or generate your plugin.',
-    placement: 'bottom',
+    placement: 'right',
     icon: icons.toolbar,
   },
   {
@@ -105,7 +105,7 @@ const TOUR_STEPS = [
     title: 'Search',
     description:
       'Search for blocks or templates by name. Quickly find the event or action you need without scrolling through the palette.',
-    placement: 'bottom',
+    placement: 'right',
     icon: icons.search,
   },
   {
@@ -114,7 +114,7 @@ const TOUR_STEPS = [
     title: 'Quick Add',
     description:
       'Instantly add events, actions, or custom blocks without dragging. Select from the dropdown and it gets added to your canvas.',
-    placement: 'bottom',
+    placement: 'right',
     icon: icons.quickAdd,
   },
   {

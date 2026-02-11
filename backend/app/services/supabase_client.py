@@ -1,8 +1,6 @@
 """Supabase client singleton."""
 
-import os
-from typing import Optional
-
+from app.config import settings
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -14,7 +12,7 @@ _initialized = False
 def get_supabase_admin():
     """Return the Supabase admin client, or None if not configured.
 
-    Uses SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.
+    Uses SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY from app settings.
     Returns None in local dev when these are not set, allowing the app
     to fall back to local-only behaviour.
     """
@@ -24,8 +22,8 @@ def get_supabase_admin():
         return _supabase_admin
 
     _initialized = True
-    url = os.getenv("SUPABASE_URL")
-    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    url = settings.SUPABASE_URL
+    key = settings.SUPABASE_SERVICE_ROLE_KEY
 
     if not url or not key:
         logger.info("Supabase not configured — running in local-only mode")

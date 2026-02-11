@@ -24,6 +24,11 @@ const usePluginStore = create((set) => ({
   setAuthor: (author) => set({ author }),
 
   addBlock: (block) => set((state) => ({ blocks: [...state.blocks, block] })),
+  setBlocks: (blocks) =>
+    set({
+      blocks: Array.isArray(blocks) ? blocks : [],
+      selectedBlockId: null,
+    }),
   updateBlock: (id, updates) =>
     set((state) => ({
       blocks: state.blocks.map((b) => (b.id === id ? { ...b, ...updates } : b))

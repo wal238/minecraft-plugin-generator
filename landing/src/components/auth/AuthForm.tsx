@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 interface AuthFormProps {
@@ -15,14 +15,39 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const supabase = createClient();
 
   const isSignup = mode === 'signup';
+  const message = searchParams.get('message');
+
+  const getSessionForHandoff = async () => {
+    let { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      const refreshed = await supabase.auth.refreshSession();
+      session = refreshed.data.session;
+    }
+    return session;
+  };
+
+  const redirectToBuilderWithSession = async (targetUrl: string) => {
+    const session = await getSessionForHandoff();
+    const url = new URL(targetUrl);
+    if (session?.access_token && session?.refresh_token) {
+      url.searchParams.set('access_token', session.access_token);
+      url.searchParams.set('refresh_token', session.refresh_token);
+      url.searchParams.set('handoff', '1');
+    }
+    window.location.href = url.toString();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setNotice(null);
 
     if (isSignup) {
       if (password.length < 8) {
@@ -36,7 +61,6 @@ export function AuthForm({ mode }: AuthFormProps) {
     }
 
     setLoading(true);
-    const supabase = createClient();
 
     if (isSignup) {
       const { error } = await supabase.auth.signUp({
@@ -53,11 +77,17 @@ export function AuthForm({ mode }: AuthFormProps) {
         return;
       }
       setError(null);
-      router.push('/login?message=Check your email to confirm your account');
+      router.push('/login?message=Check your email to verify your account, then log in');
     } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         setError(error.message);
+        setLoading(false);
+        return;
+      }
+      if (!data.user?.email_confirmed_at && !data.user?.confirmed_at) {
+        await supabase.auth.signOut();
+        setNotice('Please verify your email before logging in.');
         setLoading(false);
         return;
       }
@@ -65,11 +95,13 @@ export function AuthForm({ mode }: AuthFormProps) {
       const redirect = params.get('redirect');
       const builderUrl = process.env.NEXT_PUBLIC_BUILDER_URL;
       const isBuilderRedirect = builderUrl && redirect?.startsWith(builderUrl);
-      const safePath = isBuilderRedirect ? redirect
-        : redirect?.startsWith('/') && !redirect.startsWith('//') ? redirect
-        : '/account';
+      const safePath: string = isBuilderRedirect && redirect
+        ? redirect
+        : redirect && redirect.startsWith('/') && !redirect.startsWith('//')
+          ? redirect
+          : '/account';
       if (isBuilderRedirect) {
-        window.location.href = safePath;
+        await redirectToBuilderWithSession(safePath);
       } else {
         router.push(safePath);
       }
@@ -84,6 +116,18 @@ export function AuthForm({ mode }: AuthFormProps) {
         <h1 className="font-pixel text-xl text-center mb-8" style={{ color: 'var(--mc-orange)' }}>
           {isSignup ? 'CREATE ACCOUNT' : 'LOG IN'}
         </h1>
+
+        {isSignup && (
+          <div className="mb-5 p-3 text-sm" style={{ background: 'rgba(255, 152, 0, 0.1)', border: '1px solid var(--mc-orange)', color: 'var(--text-primary)' }}>
+            After signup: 1) Verify your email, 2) Return here and log in.
+          </div>
+        )}
+
+        {!isSignup && message && (
+          <div className="mb-5 p-3 text-sm" style={{ background: 'rgba(255, 152, 0, 0.1)', border: '1px solid var(--mc-orange)', color: 'var(--text-primary)' }}>
+            {message}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {isSignup && (
@@ -156,6 +200,12 @@ export function AuthForm({ mode }: AuthFormProps) {
           {error && (
             <div className="p-3 text-sm" style={{ background: 'rgba(244, 67, 54, 0.1)', border: '1px solid var(--mc-red)', color: 'var(--mc-red)' }}>
               {error}
+            </div>
+          )}
+
+          {notice && (
+            <div className="p-3 text-sm" style={{ background: 'rgba(255, 152, 0, 0.1)', border: '1px solid var(--mc-orange)', color: 'var(--text-primary)' }}>
+              {notice}
             </div>
           )}
 

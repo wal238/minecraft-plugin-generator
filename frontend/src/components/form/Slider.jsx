@@ -24,7 +24,7 @@ export default function Slider({
           value={numValue}
           onChange={(e) => onChange(e.target.value)}
           style={{
-            background: `linear-gradient(to right, #3498db 0%, #3498db ${percentage}%, #ddd ${percentage}%, #ddd 100%)`,
+            background: `linear-gradient(to right, #2196F3 0%, #2196F3 ${percentage}%, #333 ${percentage}%, #333 100%)`,
           }}
         />
         <span className="slider-value">{numValue}</span>

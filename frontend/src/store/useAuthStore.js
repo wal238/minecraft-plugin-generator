@@ -1,6 +1,31 @@
 import { create } from 'zustand';
 import { supabase } from '../services/supabase';
 
+const isEmailVerified = (user) => Boolean(user?.email_confirmed_at || user?.confirmed_at);
+const SESSION_HANDOFF_PARAMS = ['access_token', 'refresh_token', 'handoff'];
+
+const consumeSessionHandoff = async () => {
+  if (typeof window === 'undefined' || !supabase) return;
+
+  const url = new URL(window.location.href);
+  const accessToken = url.searchParams.get('access_token');
+  const refreshToken = url.searchParams.get('refresh_token');
+  if (!accessToken || !refreshToken) return;
+
+  for (const param of SESSION_HANDOFF_PARAMS) {
+    url.searchParams.delete(param);
+  }
+  window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+
+  const { error } = await supabase.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+  });
+  if (error) {
+    console.error('Session handoff failed:', error);
+  }
+};
+
 const useAuthStore = create((set, get) => ({
   user: null,
   session: null,
@@ -15,8 +40,14 @@ const useAuthStore = create((set, get) => ({
     }
 
     try {
+      await consumeSessionHandoff();
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
+        if (!isEmailVerified(session.user)) {
+          await supabase.auth.signOut();
+          set({ user: null, session: null, profile: null });
+          return;
+        }
         set({ user: session.user, session });
         await get().fetchProfile(session.user.id);
       }
@@ -28,6 +59,11 @@ const useAuthStore = create((set, get) => ({
 
     // Listen for auth state changes
     supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user && !isEmailVerified(session.user)) {
+        await supabase.auth.signOut();
+        set({ user: null, session: null, profile: null });
+        return;
+      }
       set({ user: session?.user ?? null, session });
       if (session?.user) {
         await get().fetchProfile(session.user.id);
