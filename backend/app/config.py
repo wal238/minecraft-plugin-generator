@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql://mcplugin:mcplugin@localhost:5432/mcplugin"
 
+    # Supabase
+    SUPABASE_URL: str = ""
+    SUPABASE_SERVICE_ROLE_KEY: str = ""
+
     # Directories
     TEMP_DIR: Path = Path("/tmp")
     DOWNLOADS_DIR: Path = Path("./downloads")
@@ -24,6 +28,13 @@ class Settings(BaseSettings):
     # Build
     MAX_BUILD_TIME: int = 120
     MAVEN_PATH: str = "mvn"
+    MAX_CONCURRENT_BUILDS: int = 3
+    BUILD_JOB_TIMEOUT_MINUTES: int = 10
+    ARTIFACT_EXPIRY_HOURS: int = 24
+
+    # Auth / Environment
+    REQUIRE_AUTH: bool = False
+    ENVIRONMENT: str = "development"
 
     # Frontend
     FRONTEND_URLS: List[str] = [
@@ -33,6 +44,7 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+        extra = "ignore"
 
 
 settings = Settings()

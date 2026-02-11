@@ -1672,3 +1672,264 @@
   font-size: 11px;
   color: var(--custom-color);
 }
+
+/* Upgrade Prompt */
+.upgrade-prompt-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.upgrade-prompt {
+  background: #1e1e2e;
+  border: 2px solid #ff6b35;
+  padding: 32px;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  position: relative;
+}
+
+.upgrade-prompt-close {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.upgrade-prompt-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.upgrade-prompt-title {
+  color: #ff6b35;
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.upgrade-prompt-message {
+  color: #ccc;
+  font-size: 14px;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.upgrade-prompt-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.upgrade-prompt-btn {
+  background: #ff6b35;
+  color: white;
+  padding: 8px 20px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.upgrade-prompt-btn:hover {
+  background: #e55a2b;
+}
+
+.upgrade-prompt-cancel {
+  background: transparent;
+  color: #888;
+  padding: 8px 20px;
+  border: 1px solid #444;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+/* Project List */
+.project-list-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.project-list {
+  background: #1e1e2e;
+  border: 2px solid #4caf50;
+  padding: 24px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.project-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.project-list-header h3 {
+  color: #4caf50;
+  margin: 0;
+}
+
+.project-list-close {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.project-list-error {
+  background: rgba(244, 67, 54, 0.15);
+  color: #f44336;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.project-list-loading,
+.project-list-empty {
+  color: #888;
+  text-align: center;
+  padding: 24px;
+  font-size: 14px;
+}
+
+.project-list-items {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.project-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid #333;
+  cursor: pointer;
+}
+
+.project-list-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.project-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.project-name {
+  color: #eee;
+  font-size: 14px;
+}
+
+.project-date {
+  color: #666;
+  font-size: 11px;
+}
+
+.project-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.project-actions button {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px;
+}
+
+.project-actions button:hover {
+  color: #eee;
+}
+
+.project-rename {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+}
+
+.project-rename input {
+  flex: 1;
+  background: #2a2a3e;
+  border: 1px solid #555;
+  color: #eee;
+  padding: 4px 8px;
+  font-size: 13px;
+}
+
+.project-rename button {
+  background: #333;
+  border: 1px solid #555;
+  color: #ccc;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+/* Build Status Badge */
+.build-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 4px 10px;
+  font-size: 11px;
+  color: #aaa;
+  white-space: nowrap;
+}
+
+.build-counter.at-limit {
+  color: #f44336;
+  background: rgba(244, 67, 54, 0.15);
+}
+
+/* Header Auth */
+.header-auth {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.header-login-btn {
+  text-decoration: none;
+  display: inline-block;
+}
+
+.header-user-email {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header-signout-btn {
+  font-size: 11px;
+  padding: var(--space-1) 8px;
+}
