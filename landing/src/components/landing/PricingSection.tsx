@@ -167,7 +167,7 @@ export function PricingSection() {
           className="grid grid-cols-1 md:grid-cols-3"
           style={{
             gap: '1.5rem',
-            alignItems: 'start',
+            alignItems: 'stretch',
           }}
         >
           {plans.map((plan) => {
@@ -176,13 +176,14 @@ export function PricingSection() {
             const showSavings = isYearly && plan.yearlySavings;
 
             return (
-              <MinecraftCard key={plan.tier} highlighted={plan.highlighted}>
+              <MinecraftCard key={plan.tier} highlighted={plan.highlighted} className="flex flex-col">
                 <div
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '1.5rem',
                     padding: '0.5rem 0',
+                    flex: 1,
                   }}
                 >
                   {/* Tier name */}
@@ -297,7 +298,7 @@ export function PricingSection() {
                   </ul>
 
                   {/* CTA */}
-                  <div style={{ marginTop: '0.5rem' }}>
+                  <div style={{ marginTop: 'auto', paddingTop: '0.5rem' }}>
                     {plan.tier === 'STARTER' ? (
                       <MinecraftButton
                         variant={plan.buttonVariant}
