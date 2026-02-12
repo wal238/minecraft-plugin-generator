@@ -14,11 +14,11 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 export const metadata: Metadata = {
   title: 'MC Plugin Builder — Create Minecraft Plugins Without Code',
   description:
-    'Drag-and-drop Minecraft plugin builder for Paper 1.21. No Java knowledge required. Free to start.',
+    'Drag-and-drop Minecraft plugin builder for Paper 1.21.1. No Java knowledge required. Free to start.',
   openGraph: {
     title: 'MC Plugin Builder — Create Minecraft Plugins Without Code',
     description:
-      'Drag-and-drop Minecraft plugin builder for Paper 1.21. No Java knowledge required. Free to start.',
+      'Drag-and-drop Minecraft plugin builder for Paper 1.21.1. No Java knowledge required. Free to start.',
     url: siteUrl,
     images: [
       {
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'MC Plugin Builder — Create Minecraft Plugins Without Code',
     description:
-      'Drag-and-drop Minecraft plugin builder for Paper 1.21. No Java knowledge required. Free to start.',
+      'Drag-and-drop Minecraft plugin builder for Paper 1.21.1. No Java knowledge required. Free to start.',
     images: [`${siteUrl}/og-image.png`],
   },
   alternates: {
@@ -55,7 +55,7 @@ const comparisonRows: { feature: string; starter: string; premium: string; pro: 
   { feature: 'Boss Bars', starter: '\u2717', premium: '\u2713', pro: '\u2713' },
   { feature: 'Scoreboards', starter: '\u2717', premium: '\u2713', pro: '\u2713' },
   { feature: 'Config Persistence', starter: '\u2717', premium: '\u2713', pro: '\u2713' },
-  { feature: 'API Access', starter: '\u2717', premium: '\u2717', pro: '\u2713' },
+  { feature: 'Cloud Builds', starter: '\u2713', premium: '\u2713', pro: '\u2713' },
   { feature: 'Watermark', starter: 'Yes', premium: 'No', pro: 'No' },
   { feature: 'Support', starter: 'Community', premium: 'Priority', pro: 'Priority' },
 ];
@@ -205,7 +205,7 @@ const softwareAppJsonLd = {
   operatingSystem: 'Web',
   url: siteUrl,
   description:
-    'Drag-and-drop Minecraft plugin builder for Paper 1.21. No Java knowledge required. Free to start.',
+    'Drag-and-drop Minecraft plugin builder for Paper 1.21.1. No Java knowledge required. Free to start.',
   offers: [
     {
       '@type': 'Offer',
@@ -226,7 +226,7 @@ const softwareAppJsonLd = {
       name: 'Pro',
       price: '9.99',
       priceCurrency: 'USD',
-      description: 'Unlimited projects, 20 builds/month, unlimited events & actions, API access',
+      description: 'Unlimited projects, 20 builds/month, unlimited events & actions, cloud builds',
     },
   ],
 };
@@ -248,7 +248,7 @@ const faqJsonLd = {
       name: 'What Minecraft server versions are supported?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'MC Plugin Builder generates plugins for Paper API 1.21, which is compatible with most modern Minecraft servers.',
+        text: 'MC Plugin Builder generates plugins for Paper API 1.21.1, which is compatible with most modern Minecraft servers.',
       },
     },
     {

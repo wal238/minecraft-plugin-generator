@@ -16,7 +16,7 @@ const columns = [
     links: [
       { label: 'Documentation', href: '/docs' },
       { label: 'FAQ', href: '#faq' },
-      { label: 'Support', href: '/support' },
+      { label: 'Support', href: 'mailto:waleed@allaudintech.com' },
     ],
   },
   {

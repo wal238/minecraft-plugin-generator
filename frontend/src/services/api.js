@@ -45,9 +45,10 @@ export const apiService = {
     return response.data;
   },
 
-  async getEntitlements(paperVersion) {
+  async getEntitlements(paperVersion, accessToken) {
     const response = await axiosInstance.get('/entitlements', {
       params: paperVersion ? { paper_version: paperVersion } : undefined,
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
     });
     return response.data;
   },

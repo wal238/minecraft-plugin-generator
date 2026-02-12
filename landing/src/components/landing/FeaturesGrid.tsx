@@ -27,9 +27,9 @@ const features = [
   {
     color: 'red' as const,
     icon: '\u25B6',
-    title: 'One-Click Build',
+    title: 'Cloud Builds',
     description:
-      'Generate a production-ready Paper 1.21.1 JAR file. Download and drop into your server.',
+      'Build your Paper 1.21.1 JAR entirely in the cloud. No local Java setup needed — just click and download.',
   },
   {
     color: 'purple' as const,
@@ -43,7 +43,7 @@ const features = [
     icon: '\u2728',
     title: 'No Code Required',
     description:
-      'Build complex plugins without writing a single line of Java.',
+      'Build complex plugins without writing a single line of Java. No local dev environment needed.',
   },
 ];
 

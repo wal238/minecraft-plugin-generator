@@ -12,7 +12,7 @@ const faqItems = [
   {
     question: 'Do I need to know Java?',
     answer:
-      'Not at all! The entire plugin creation process is visual. You drag and drop events, conditions, and actions to build your plugin logic. The tool generates all the Java code for you.',
+      'Not at all! The entire plugin creation process is visual. You drag and drop events, conditions, and actions to build your plugin logic. Everything builds in the cloud — no local Java setup required.',
   },
   {
     question: 'What Minecraft versions are supported?',
@@ -42,7 +42,7 @@ const faqItems = [
   {
     question: 'Do you offer refunds?',
     answer:
-      'We offer a full refund within 7 days of your first subscription payment if you\'re not satisfied. Contact support and we\'ll process it right away.',
+      'We offer a full refund within 7 days of your first subscription payment if you\'re not satisfied. Email us at waleed@allaudintech.com and we\'ll process it right away.',
   },
 ];
 

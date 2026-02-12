@@ -10,7 +10,7 @@ from app.middleware.auth import optional_auth, require_auth
 from app.middleware.rate_limit import limiter
 from app.models.plugin_config import PluginConfig
 from app.models.request import BlocksResponse, EntitlementsResponse, GenerateResponse, PreviewResponse, WorldsResponse
-from app.services.block_catalog import get_all_blocks, get_catalog_copy
+from app.services.block_catalog import get_all_blocks, get_catalog_copy, resolve_catalog_id
 from app.services.code_generator import CodeGeneratorService
 from app.services.entitlements import evaluate_block_ids, resolve_entitlements
 from app.services.plugin_generator import PluginGeneratorService, get_download_path
@@ -32,7 +32,9 @@ def _enforce_entitlements(config: PluginConfig, user: dict | None):
         return
 
     tier = user.get("subscription_tier", "free")
-    block_ids = [block.id for block in config.blocks]
+    # Resolve instance IDs (e.g. 'block-1770841288613-3txd') to catalog IDs
+    # (e.g. 'player-join') using the block name as a fallback key.
+    block_ids = [resolve_catalog_id(block.id, block.name) for block in config.blocks]
     violations, unknown_block_ids = evaluate_block_ids(
         block_ids,
         tier=tier,

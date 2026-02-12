@@ -10,6 +10,7 @@ from app.models.plugin_config import PluginConfig
 from app.services.build_job_service import build_job_service
 from app.services.build_worker import build_worker
 from app.services.artifact_storage import artifact_storage
+from app.services.block_catalog import resolve_catalog_id
 from app.services.entitlements import evaluate_block_ids
 from app.services.tier_limits import TIER_LIMITS
 from app.services.supabase_client import get_supabase_admin
@@ -41,7 +42,7 @@ async def create_build_job(config: PluginConfig, request: Request, user: dict = 
         if max_actions != -1 and action_count > max_actions:
             raise HTTPException(403, f"Your plan allows {max_actions} actions max.")
 
-        block_ids = [block.id for block in config.blocks]
+        block_ids = [resolve_catalog_id(block.id, block.name) for block in config.blocks]
         violations, unknown_block_ids = evaluate_block_ids(
             block_ids,
             tier=tier,

@@ -3,6 +3,8 @@
 import logging
 from logging.config import dictConfig
 
+from app.config import settings
+
 LOGGING_CONFIG = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -18,8 +20,15 @@ LOGGING_CONFIG = {
             "stream": "ext://sys.stdout",
         },
     },
+    "loggers": {
+        "httpx": {
+            "level": "WARNING",
+            "handlers": ["default"],
+            "propagate": False,
+        },
+    },
     "root": {
-        "level": "INFO",
+        "level": settings.LOG_LEVEL.upper(),
         "handlers": ["default"],
     },
 }

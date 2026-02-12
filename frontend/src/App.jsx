@@ -43,6 +43,7 @@ export default function App() {
   const profile = useAuthStore((s) => s.profile);
   const entitlements = useAuthStore((s) => s.entitlements);
   const authInitialized = useAuthStore((s) => s.initialized);
+  const authError = useAuthStore((s) => s.authError);
   const signOut = useAuthStore((s) => s.signOut);
   const refreshEntitlements = useAuthStore((s) => s.refreshEntitlements);
 
@@ -99,7 +100,9 @@ export default function App() {
   useEffect(() => {
     if (!authEnabled || !authInitialized || !user) return;
     refreshEntitlements(paperVersion);
-  }, [authEnabled, authInitialized, user, paperVersion, refreshEntitlements]);
+    // refreshEntitlements is a stable Zustand action — excluded to prevent re-render loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authEnabled, authInitialized, user, paperVersion]);
 
   // First login experience: show editor overview tour before dashboard
   useEffect(() => {
@@ -598,6 +601,9 @@ export default function App() {
           <p className="auth-gate-subtitle">
             Create a free account, verify your email, then sign in to start building Minecraft plugins
           </p>
+          {authError && (
+            <div className="auth-gate-error">{authError}</div>
+          )}
           <div className="auth-gate-buttons">
             <a
               href={`${landingUrl}/signup?redirect=${encodeURIComponent(window.location.origin)}`}

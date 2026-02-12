@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     REQUIRE_AUTH: bool = False
     ENVIRONMENT: str = "development"
 
+    # Logging
+    LOG_LEVEL: str = "INFO"
+
     # Frontend
     FRONTEND_URLS: List[str] = [
         "http://localhost:5173",
