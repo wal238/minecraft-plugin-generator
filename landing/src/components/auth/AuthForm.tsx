@@ -119,36 +119,92 @@ export function AuthForm({ mode }: AuthFormProps) {
     setLoading(false);
   };
 
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '0.75rem 1rem',
+    background: 'rgba(255, 255, 255, 0.05)',
+    border: '2px solid rgba(255, 255, 255, 0.1)',
+    color: 'var(--text-primary)',
+    fontSize: '0.9rem',
+    outline: 'none',
+    transition: 'border-color 0.2s',
+  };
+
+  const inputFocusHandler = (e: React.FocusEvent<HTMLInputElement>) => {
+    e.target.style.borderColor = 'var(--mc-orange)';
+  };
+  const inputBlurHandler = (e: React.FocusEvent<HTMLInputElement>) => {
+    e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--bg-primary)' }}>
-      <div className="mc-card w-full max-w-md p-8">
-        <h1 className="font-pixel text-xl text-center mb-8" style={{ color: 'var(--mc-orange)' }}>
+      <div className="mc-card w-full max-w-md" style={{ padding: '2.5rem 2rem' }}>
+        <h1
+          style={{
+            fontFamily: 'var(--font-pixel)',
+            fontSize: '1.1rem',
+            color: 'var(--mc-orange)',
+            textAlign: 'center',
+            marginBottom: '2rem',
+          }}
+        >
           {isSignup ? 'CREATE ACCOUNT' : 'LOG IN'}
         </h1>
 
         {isSignup && (
-          <div className="mb-5 p-3 text-sm" style={{ background: 'rgba(255, 152, 0, 0.1)', border: '1px solid var(--mc-orange)', color: 'var(--text-primary)' }}>
+          <div
+            style={{
+              marginBottom: '1.5rem',
+              padding: '0.75rem 1rem',
+              fontSize: '0.8rem',
+              lineHeight: 1.5,
+              background: 'rgba(255, 152, 0, 0.08)',
+              border: '1px solid rgba(255, 152, 0, 0.3)',
+              color: 'var(--text-secondary)',
+            }}
+          >
             After signup: 1) Verify your email, 2) Return here and log in.
           </div>
         )}
 
         {!isSignup && message && (
-          <div className="mb-5 p-3 text-sm" style={{ background: 'rgba(255, 152, 0, 0.1)', border: '1px solid var(--mc-orange)', color: 'var(--text-primary)' }}>
+          <div
+            style={{
+              marginBottom: '1.5rem',
+              padding: '0.75rem 1rem',
+              fontSize: '0.8rem',
+              lineHeight: 1.5,
+              background: 'rgba(255, 152, 0, 0.08)',
+              border: '1px solid rgba(255, 152, 0, 0.3)',
+              color: 'var(--text-secondary)',
+            }}
+          >
             {message}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {isSignup && (
             <div>
-              <label className="block font-pixel text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>
+              <label
+                style={{
+                  display: 'block',
+                  fontFamily: 'var(--font-pixel)',
+                  fontSize: '0.6rem',
+                  color: 'var(--text-secondary)',
+                  marginBottom: '0.5rem',
+                }}
+              >
                 Display Name
               </label>
               <input
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="w-full p-3 bg-(--bg-primary) border-2 border-(--mc-gray-dark) text-(--text-primary) focus:border-(--mc-orange) outline-none transition-colors"
+                onFocus={inputFocusHandler}
+                onBlur={inputBlurHandler}
+                style={inputStyle}
                 placeholder="Steve"
                 maxLength={50}
               />
@@ -156,7 +212,15 @@ export function AuthForm({ mode }: AuthFormProps) {
           )}
 
           <div>
-            <label className="block font-pixel text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>
+            <label
+              style={{
+                display: 'block',
+                fontFamily: 'var(--font-pixel)',
+                fontSize: '0.6rem',
+                color: 'var(--text-secondary)',
+                marginBottom: '0.5rem',
+              }}
+            >
               Email
             </label>
             <input
@@ -164,13 +228,23 @@ export function AuthForm({ mode }: AuthFormProps) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full p-3 bg-(--bg-primary) border-2 border-(--mc-gray-dark) text-(--text-primary) focus:border-(--mc-orange) outline-none transition-colors"
+              onFocus={inputFocusHandler}
+              onBlur={inputBlurHandler}
+              style={inputStyle}
               placeholder="steve@minecraft.net"
             />
           </div>
 
           <div>
-            <label className="block font-pixel text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>
+            <label
+              style={{
+                display: 'block',
+                fontFamily: 'var(--font-pixel)',
+                fontSize: '0.6rem',
+                color: 'var(--text-secondary)',
+                marginBottom: '0.5rem',
+              }}
+            >
               Password
             </label>
             <input
@@ -179,11 +253,13 @@ export function AuthForm({ mode }: AuthFormProps) {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={8}
-              className="w-full p-3 bg-(--bg-primary) border-2 border-(--mc-gray-dark) text-(--text-primary) focus:border-(--mc-orange) outline-none transition-colors"
+              onFocus={inputFocusHandler}
+              onBlur={inputBlurHandler}
+              style={inputStyle}
               placeholder="••••••••"
             />
             {isSignup && (
-              <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>
+              <p style={{ marginTop: '0.35rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                 Min 8 characters
               </p>
             )}
@@ -191,7 +267,15 @@ export function AuthForm({ mode }: AuthFormProps) {
 
           {isSignup && (
             <div>
-              <label className="block font-pixel text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>
+              <label
+                style={{
+                  display: 'block',
+                  fontFamily: 'var(--font-pixel)',
+                  fontSize: '0.6rem',
+                  color: 'var(--text-secondary)',
+                  marginBottom: '0.5rem',
+                }}
+              >
                 Confirm Password
               </label>
               <input
@@ -200,20 +284,38 @@ export function AuthForm({ mode }: AuthFormProps) {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 minLength={8}
-                className="w-full p-3 bg-(--bg-primary) border-2 border-(--mc-gray-dark) text-(--text-primary) focus:border-(--mc-orange) outline-none transition-colors"
+                onFocus={inputFocusHandler}
+                onBlur={inputBlurHandler}
+                style={inputStyle}
                 placeholder="••••••••"
               />
             </div>
           )}
 
           {error && (
-            <div className="p-3 text-sm" style={{ background: 'rgba(244, 67, 54, 0.1)', border: '1px solid var(--mc-red)', color: 'var(--mc-red)' }}>
+            <div
+              style={{
+                padding: '0.75rem 1rem',
+                fontSize: '0.8rem',
+                background: 'rgba(244, 67, 54, 0.08)',
+                border: '1px solid rgba(244, 67, 54, 0.3)',
+                color: 'var(--mc-red)',
+              }}
+            >
               {error}
             </div>
           )}
 
           {notice && (
-            <div className="p-3 text-sm" style={{ background: 'rgba(255, 152, 0, 0.1)', border: '1px solid var(--mc-orange)', color: 'var(--text-primary)' }}>
+            <div
+              style={{
+                padding: '0.75rem 1rem',
+                fontSize: '0.8rem',
+                background: 'rgba(255, 152, 0, 0.08)',
+                border: '1px solid rgba(255, 152, 0, 0.3)',
+                color: 'var(--text-primary)',
+              }}
+            >
               {notice}
             </div>
           )}
@@ -221,27 +323,28 @@ export function AuthForm({ mode }: AuthFormProps) {
           <button
             type="submit"
             disabled={loading}
-            className={`mc-btn mc-btn-orange w-full justify-center ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`mc-btn mc-btn-orange ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            style={{ width: '100%', display: 'flex', justifyContent: 'center', marginTop: '0.25rem' }}
           >
             {loading ? 'Loading...' : isSignup ? 'CREATE ACCOUNT' : 'LOG IN'}
           </button>
         </form>
 
-        <div className="mt-6 text-center text-sm" style={{ color: 'var(--text-secondary)' }}>
+        <div style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
           {mode === 'login' ? (
             <>
               <p>
                 Don&apos;t have an account?{' '}
-                <Link href={`/signup${searchParams.get('redirect') ? `?redirect=${encodeURIComponent(searchParams.get('redirect')!)}` : ''}`} className="underline" style={{ color: 'var(--mc-orange)' }}>Sign up</Link>
+                <Link href={`/signup${searchParams.get('redirect') ? `?redirect=${encodeURIComponent(searchParams.get('redirect')!)}` : ''}`} style={{ color: 'var(--mc-orange)', textDecoration: 'underline' }}>Sign up</Link>
               </p>
-              <p className="mt-2">
-                <Link href="/reset-password" className="underline" style={{ color: 'var(--text-muted)' }}>Forgot password?</Link>
+              <p style={{ marginTop: '0.5rem' }}>
+                <Link href="/reset-password" style={{ color: 'var(--text-muted)', textDecoration: 'underline' }}>Forgot password?</Link>
               </p>
             </>
           ) : (
             <p>
               Already have an account?{' '}
-              <Link href={`/login${searchParams.get('redirect') ? `?redirect=${encodeURIComponent(searchParams.get('redirect')!)}` : ''}`} className="underline" style={{ color: 'var(--mc-orange)' }}>Log in</Link>
+              <Link href={`/login${searchParams.get('redirect') ? `?redirect=${encodeURIComponent(searchParams.get('redirect')!)}` : ''}`} style={{ color: 'var(--mc-orange)', textDecoration: 'underline' }}>Log in</Link>
             </p>
           )}
         </div>

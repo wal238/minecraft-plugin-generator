@@ -164,7 +164,7 @@ export function PricingSection() {
 
       <AnimatedSection stagger>
         <div
-          className="grid grid-cols-1 md:grid-cols-3"
+          className="grid grid-cols-3"
           style={{
             gap: '1.5rem',
             alignItems: 'stretch',
