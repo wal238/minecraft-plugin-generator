@@ -137,7 +137,7 @@ export function Hero() {
         </h1>
 
         <p className="hero-subtitle">
-          Drag-and-drop visual builder for Paper 1.21.1. No Java knowledge required.
+          Drag-and-drop visual builder for Paper 1.21.1. Build in the cloud — no Java setup required.
         </p>
 
         <div className="hero-cta-group">

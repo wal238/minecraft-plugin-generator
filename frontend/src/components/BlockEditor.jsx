@@ -1,9 +1,34 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import usePluginStore from '../store/usePluginStore';
 import CodeEditor from './CodeEditor';
 import { GroupedSelect, Slider, SelectInput, NumberInput } from './form';
 import { getFieldDefs } from '../utils/blockSchema';
 import { getAvailableTargets, supportsTargeting } from '../utils/actionTargeting';
+
+/**
+ * Maps block names to their fields that support placeholder variables.
+ * Each entry lists the field name and which variables are available.
+ * %arg0%, %arg1% etc. are added dynamically when inside a CommandEvent.
+ */
+const FIELD_VARIABLES = {
+  SendMessage:          { message:         ['%player%'] },
+  SendConsoleMessage:   { message:         ['%player%'] },
+  BroadcastMessage:     { message:         ['%player%'] },
+  SendTitle:            { title:           ['%player%'], subtitle: ['%player%'] },
+  SendActionBar:        { message:         ['%player%'] },
+  ConsoleLog:           { message:         ['%player%'] },
+  KickPlayer:           { reason:          ['%player%'] },
+  ExecuteCommand:       { command:         ['%player%'] },
+  ExecuteCommandAsPlayer: { command:       ['%player%'] },
+  ExecuteConsoleCommand:  { command:       ['%player%'] },
+  SendTabHeaderFooter:  { header:          ['%player%'], footer: ['%player%'] },
+  SetCooldown:          { cooldownMessage: ['%player%', '%remaining%'] },
+  CheckCooldown:        { cooldownMessage: ['%player%', '%remaining%'] },
+  SetTempVar:           { value:           ['%player%'] },
+  GetTempVar:           { messageFormat:   ['%player%', '%value%'] },
+  SetCustomName:        { name:            ['%player%'] },
+  OpenBook:             { content:         ['%player%'] },
+};
 
 /** Context hints per event type shown above the code editor. */
 const EVENT_CONTEXT = {
@@ -39,7 +64,7 @@ const EVENT_CONTEXT = {
 /**
  * Render the appropriate form field based on field definition.
  */
-function renderField(field, value, onChange) {
+function renderField(field, value, onChange, inputRef) {
   const { type, name, options, min, max, step, hint, placeholder } = field;
 
   switch (type) {
@@ -115,6 +140,7 @@ function renderField(field, value, onChange) {
     default:
       return (
         <input
+          ref={inputRef}
           className="form-input"
           type="text"
           placeholder={placeholder || ''}
@@ -123,6 +149,73 @@ function renderField(field, value, onChange) {
         />
       );
   }
+}
+
+/**
+ * Wraps a form field with clickable variable chips when applicable.
+ * Clicking a chip inserts the variable at the cursor position in the text input.
+ */
+function FieldWithVariables({ field, value, onChange, blockName, isCommand }) {
+  const inputRef = useRef(null);
+
+  const blockVars = FIELD_VARIABLES[blockName];
+  const baseVars = blockVars?.[field.name];
+
+  // Build full variable list: base vars + %arg0% etc. when inside a command
+  const variables = useMemo(() => {
+    if (!baseVars) return null;
+    const vars = [...baseVars];
+    if (isCommand && !vars.some((v) => v.startsWith('%arg'))) {
+      vars.push('%arg0%', '%arg1%', '%arg2%');
+    }
+    return vars;
+  }, [baseVars, isCommand]);
+
+  const handleChipClick = useCallback((variable) => {
+    const input = inputRef.current;
+    if (!input) {
+      // Fallback: append to end
+      onChange((value || '') + variable);
+      return;
+    }
+    const start = input.selectionStart ?? (value || '').length;
+    const end = input.selectionEnd ?? start;
+    const current = value || '';
+    const newValue = current.slice(0, start) + variable + current.slice(end);
+    onChange(newValue);
+    // Restore cursor position after React re-render
+    requestAnimationFrame(() => {
+      const cursorPos = start + variable.length;
+      input.setSelectionRange(cursorPos, cursorPos);
+      input.focus();
+    });
+  }, [value, onChange]);
+
+  return (
+    <div className="form-group">
+      <label className="form-label" htmlFor={`prop-${field.name}`}>
+        {field.label || field.name}
+        {field.required && <span className="form-required">*</span>}
+      </label>
+      {renderField(field, value, onChange, variables ? inputRef : undefined)}
+      {variables && (
+        <div className="variable-chips">
+          <span className="variable-chips-label">Variables:</span>
+          {variables.map((v) => (
+            <button
+              key={v}
+              type="button"
+              className="variable-chip"
+              onClick={() => handleChipClick(v)}
+              title={`Insert ${v}`}
+            >
+              {v}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function BlockEditor() {
@@ -293,17 +386,14 @@ export default function BlockEditor() {
 
       {/* Render fields */}
       {resolvedFields.map((field) => (
-        <div key={field.name} className="form-group">
-          <label className="form-label" htmlFor={`prop-${field.name}`}>
-            {field.label || field.name}
-            {field.required && <span className="form-required">*</span>}
-          </label>
-          {renderField(
-            field,
-            localProperties?.[field.name] ?? field.default ?? '',
-            (value) => handlePropertyChange(field.name, value)
-          )}
-        </div>
+        <FieldWithVariables
+          key={field.name}
+          field={field}
+          value={localProperties?.[field.name] ?? field.default ?? ''}
+          onChange={(value) => handlePropertyChange(field.name, value)}
+          blockName={block.name}
+          isCommand={parentEvent?.name === 'CommandEvent'}
+        />
       ))}
 
       {/* No fields message for actions like CancelEvent */}

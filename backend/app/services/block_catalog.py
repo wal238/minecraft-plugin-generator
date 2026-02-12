@@ -28,6 +28,30 @@ def _cached_index() -> Dict[str, dict]:
     return index
 
 
+@lru_cache(maxsize=1)
+def _cached_name_to_id() -> Dict[str, str]:
+    """Map block name (e.g. 'PlayerJoinEvent') to catalog id (e.g. 'player-join')."""
+    blocks = _cached_catalog()
+    mapping: Dict[str, str] = {}
+    for section in ("events", "actions", "custom_options"):
+        for block in blocks.get(section, []):
+            name = str(block.get("name", ""))
+            block_id = str(block.get("id", ""))
+            if name and block_id:
+                mapping[name] = block_id
+    return mapping
+
+
+def resolve_catalog_id(block_id: str, block_name: str) -> str:
+    """Return the catalog id for a block, resolving instance IDs via block name."""
+    index = _cached_index()
+    if block_id in index:
+        return block_id
+    # Instance ID (e.g. 'block-1770841288613-3txd') — resolve via name
+    name_map = _cached_name_to_id()
+    return name_map.get(block_name, block_id)
+
+
 def get_catalog_copy() -> Dict[str, List[dict]]:
     """Return a mutable copy of the full catalog for API responses."""
     return deepcopy(_cached_catalog())

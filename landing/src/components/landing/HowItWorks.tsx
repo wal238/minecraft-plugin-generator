@@ -27,7 +27,7 @@ const steps = [
     color: 'var(--mc-red)',
     title: 'Build & Download',
     description:
-      'One click generates a Paper 1.21.1 JAR. Drop it in your server\'s plugins folder.',
+      'One click builds your Paper 1.21.1 JAR in the cloud. No Java setup — just download and drop it in your server.',
   },
 ];
 

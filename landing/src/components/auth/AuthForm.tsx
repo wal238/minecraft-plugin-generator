@@ -26,7 +26,21 @@ export function AuthForm({ mode }: AuthFormProps) {
   const message = searchParams.get('message');
 
   const redirectToBuilderWithSession = async (targetUrl: string) => {
-    const code = await createHandoffCodeForCurrentSession();
+    let code: string | null = null;
+    try {
+      code = await createHandoffCodeForCurrentSession();
+    } catch {
+      // Handoff creation failed — will retry below
+    }
+    if (!code) {
+      // Retry once after a brief delay (cookies may not be flushed yet)
+      await new Promise((r) => setTimeout(r, 500));
+      try {
+        code = await createHandoffCodeForCurrentSession();
+      } catch {
+        // Ignore — will redirect without code and show error on builder
+      }
+    }
     const url = new URL(targetUrl);
     if (code) {
       url.searchParams.set('handoff_code', code);
@@ -67,7 +81,12 @@ export function AuthForm({ mode }: AuthFormProps) {
         return;
       }
       setError(null);
-      router.push('/login?message=Check your email to verify your account, then log in');
+      const redirect = searchParams.get('redirect');
+      const loginParams = new URLSearchParams({ message: 'Check your email to verify your account, then log in' });
+      if (redirect) {
+        loginParams.set('redirect', redirect);
+      }
+      router.push(`/login?${loginParams.toString()}`);
     } else {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
@@ -213,7 +232,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             <>
               <p>
                 Don&apos;t have an account?{' '}
-                <Link href="/signup" className="underline" style={{ color: 'var(--mc-orange)' }}>Sign up</Link>
+                <Link href={`/signup${searchParams.get('redirect') ? `?redirect=${encodeURIComponent(searchParams.get('redirect')!)}` : ''}`} className="underline" style={{ color: 'var(--mc-orange)' }}>Sign up</Link>
               </p>
               <p className="mt-2">
                 <Link href="/reset-password" className="underline" style={{ color: 'var(--text-muted)' }}>Forgot password?</Link>
@@ -222,7 +241,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           ) : (
             <p>
               Already have an account?{' '}
-              <Link href="/login" className="underline" style={{ color: 'var(--mc-orange)' }}>Log in</Link>
+              <Link href={`/login${searchParams.get('redirect') ? `?redirect=${encodeURIComponent(searchParams.get('redirect')!)}` : ''}`} className="underline" style={{ color: 'var(--mc-orange)' }}>Log in</Link>
             </p>
           )}
         </div>

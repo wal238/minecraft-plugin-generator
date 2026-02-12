@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useUser } from '@/hooks/useUser';
+import { UserMenu } from '@/components/auth/UserMenu';
 
 const navLinks = [
   { label: 'Features', href: '#features' },
@@ -10,9 +12,14 @@ const navLinks = [
   { label: 'FAQ', href: '#faq' },
 ];
 
+const builderUrl = process.env.NEXT_PUBLIC_BUILDER_URL || 'http://localhost:5173';
+const loginHref = `/login?redirect=${encodeURIComponent(builderUrl)}`;
+const signupHref = `/signup?redirect=${encodeURIComponent(builderUrl)}`;
+
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, loading } = useUser();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -104,20 +111,26 @@ export function Navbar() {
 
         {/* Right buttons — desktop */}
         <div className="hidden md:flex items-center gap-3">
-          <Link
-            href="/login"
-            className="mc-btn mc-btn-outline"
-            style={{ padding: '0.625rem 1.25rem', fontSize: '0.625rem' }}
-          >
-            Login
-          </Link>
-          <Link
-            href="/signup"
-            className="mc-btn mc-btn-orange"
-            style={{ padding: '0.625rem 1.25rem', fontSize: '0.625rem' }}
-          >
-            Sign Up
-          </Link>
+          {!loading && user ? (
+            <UserMenu user={user} />
+          ) : (
+            <>
+              <Link
+                href={loginHref}
+                className="mc-btn mc-btn-outline"
+                style={{ padding: '0.625rem 1.25rem', fontSize: '0.625rem' }}
+              >
+                Login
+              </Link>
+              <Link
+                href={signupHref}
+                className="mc-btn mc-btn-orange"
+                style={{ padding: '0.625rem 1.25rem', fontSize: '0.625rem' }}
+              >
+                Sign Up
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Hamburger — mobile */}
@@ -198,22 +211,28 @@ export function Navbar() {
           ))}
 
           <div className="flex flex-col gap-3 pt-2">
-            <Link
-              href="/login"
-              className="mc-btn mc-btn-outline"
-              style={{ fontSize: '0.625rem', textAlign: 'center' }}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Login
-            </Link>
-            <Link
-              href="/signup"
-              className="mc-btn mc-btn-orange"
-              style={{ fontSize: '0.625rem', textAlign: 'center' }}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Sign Up
-            </Link>
+            {!loading && user ? (
+              <UserMenu user={user} />
+            ) : (
+              <>
+                <Link
+                  href={loginHref}
+                  className="mc-btn mc-btn-outline"
+                  style={{ fontSize: '0.625rem', textAlign: 'center' }}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Login
+                </Link>
+                <Link
+                  href={signupHref}
+                  className="mc-btn mc-btn-orange"
+                  style={{ fontSize: '0.625rem', textAlign: 'center' }}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Sign Up
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>

@@ -6,12 +6,13 @@ const isEmailVerified = (user) => Boolean(user?.email_confirmed_at || user?.conf
 const SESSION_HANDOFF_PARAMS = ['access_token', 'refresh_token', 'handoff', 'handoff_code', 'checkout'];
 
 const consumeSessionHandoff = async () => {
-  if (typeof window === 'undefined' || !supabase) return;
+  if (typeof window === 'undefined' || !supabase) return null;
 
   const url = new URL(window.location.href);
   const handoffCode = url.searchParams.get('handoff_code');
   let accessToken = url.searchParams.get('access_token');
   let refreshToken = url.searchParams.get('refresh_token');
+  const hadHandoff = !!(handoffCode || accessToken || refreshToken);
 
   if (handoffCode && (!accessToken || !refreshToken)) {
     try {
@@ -20,10 +21,16 @@ const consumeSessionHandoff = async () => {
       refreshToken = exchanged.refresh_token;
     } catch (err) {
       console.error('Handoff code exchange failed:', err);
+      // Clean up URL params before returning
+      for (const param of SESSION_HANDOFF_PARAMS) {
+        url.searchParams.delete(param);
+      }
+      window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+      return 'Sign-in failed. The login link may have expired — please try signing in again.';
     }
   }
 
-  if (!accessToken || !refreshToken) return;
+  if (!accessToken || !refreshToken) return null;
 
   for (const param of SESSION_HANDOFF_PARAMS) {
     url.searchParams.delete(param);
@@ -36,7 +43,9 @@ const consumeSessionHandoff = async () => {
   });
   if (error) {
     console.error('Session handoff failed:', error);
+    return 'Sign-in failed. Please try signing in again.';
   }
+  return null;
 };
 
 const useAuthStore = create((set, get) => ({
@@ -46,6 +55,7 @@ const useAuthStore = create((set, get) => ({
   entitlements: null,
   loading: true,
   initialized: false,
+  authError: null,
 
   initialize: async () => {
     if (!supabase) {
@@ -54,26 +64,33 @@ const useAuthStore = create((set, get) => ({
     }
 
     try {
-      await consumeSessionHandoff();
+      const handoffError = await consumeSessionHandoff();
+      if (handoffError) {
+        set({ authError: handoffError });
+      }
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         if (!isEmailVerified(session.user)) {
           await supabase.auth.signOut();
-          set({ user: null, session: null, profile: null, entitlements: null });
+          set({ user: null, session: null, profile: null, entitlements: null,
+            authError: 'Please verify your email before signing in.' });
           return;
         }
-        set({ user: session.user, session });
+        set({ user: session.user, session, authError: null });
         await get().fetchProfile(session.user.id);
-        await get().refreshEntitlements();
       }
     } catch (err) {
       console.error('Auth initialization failed:', err);
+      set({ authError: 'Something went wrong during sign-in. Please try again.' });
     } finally {
       set({ loading: false, initialized: true });
     }
 
-    // Listen for auth state changes
-    supabase.auth.onAuthStateChange(async (_event, session) => {
+    // Listen for auth state changes (sign-in, sign-out, token refresh).
+    // Skip INITIAL_SESSION since initialize() already handled it above.
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'INITIAL_SESSION') return;
+
       if (session?.user && !isEmailVerified(session.user)) {
         await supabase.auth.signOut();
         set({ user: null, session: null, profile: null, entitlements: null });
@@ -108,7 +125,12 @@ const useAuthStore = create((set, get) => ({
   refreshEntitlements: async (paperVersion) => {
     if (!supabase) return;
     try {
-      const data = await apiService.getEntitlements(paperVersion);
+      const token = await get().getAccessToken();
+      if (!token) {
+        set({ entitlements: null });
+        return;
+      }
+      const data = await apiService.getEntitlements(paperVersion, token);
       set({ entitlements: data });
     } catch (err) {
       console.error('Failed to fetch entitlements:', err);
@@ -117,6 +139,8 @@ const useAuthStore = create((set, get) => ({
 
   getAccessToken: async () => {
     if (!supabase) return null;
+    const stateSession = get().session;
+    if (stateSession?.access_token) return stateSession.access_token;
     const { data: { session } } = await supabase.auth.getSession();
     return session?.access_token ?? null;
   },
