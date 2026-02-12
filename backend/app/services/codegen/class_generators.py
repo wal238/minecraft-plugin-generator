@@ -124,7 +124,11 @@ def generate_listener_class(
     action_names = {b.name for b in child_blocks if b.type == BlockType.ACTION}
     has_custom = any(b.type in (BlockType.CUSTOM_ACTION, BlockType.CUSTOM_CONDITION) for b in child_blocks)
 
-    needs_material = bool(action_names & {"GiveItem", "DropItem", "RemoveItem", "SetItemInHand", "SetBlockType", "FillRegion", "SetEntityEquipment", "HasItem"})
+    needs_material = bool(action_names & {
+        "GiveItem", "DropItem", "RemoveItem", "SetItemInHand", "SetBlockType", "FillRegion",
+        "SetEntityEquipment", "HasItem", "SetArmor", "OpenBook", "SpawnFallingBlock",
+        "IsHoldingItem", "BlockIsType",
+    })
     if needs_material:
         imports.append("org.bukkit.Material")
         imports.append("org.bukkit.inventory.ItemStack")
@@ -150,7 +154,7 @@ def generate_listener_class(
         imports.append("org.bukkit.Bukkit")
     if "PlaySound" in action_names:
         imports.append("org.bukkit.Sound")
-    if "TeleportPlayer" in action_names or "SetVelocity" in action_names or "TeleportEntity" in action_names:
+    if action_names & {"TeleportPlayer", "SetVelocity", "TeleportEntity", "SetSpawnLocation"}:
         imports.append("org.bukkit.Location")
     if "SetVelocity" in action_names or "SetEntityVelocity" in action_names:
         imports.append("org.bukkit.util.Vector")
@@ -160,17 +164,15 @@ def generate_listener_class(
         imports.append("org.bukkit.ChatColor")
     if "SetGameMode" in action_names or "GameModeEquals" in action_names:
         imports.append("org.bukkit.GameMode")
-    if (
-        "AddPotionEffect" in action_names
-        or "ApplyPotionEffect" in action_names
-        or "RemovePotionEffect" in action_names
-        or "ApplyEntityPotionEffect" in action_names
-    ):
+    if action_names & {
+        "AddPotionEffect", "ApplyPotionEffect", "RemovePotionEffect",
+        "ApplyEntityPotionEffect", "HasPotionEffect",
+    }:
         imports.append("org.bukkit.potion.PotionEffect")
         imports.append("org.bukkit.potion.PotionEffectType")
     if "SpawnParticle" in action_names or "SpawnParticles" in action_names:
         imports.append("org.bukkit.Particle")
-    if "SpawnEntity" in action_names:
+    if action_names & {"SpawnEntity", "SpawnFirework"}:
         imports.append("org.bukkit.entity.EntityType")
     if "SetEntityHealth" in action_names or "ApplyEntityPotionEffect" in action_names or "SetEntityOnFire" in action_names or "SetEntityCustomName" in action_names or "SetEntityEquipment" in action_names:
         imports.append("org.bukkit.entity.LivingEntity")
@@ -214,6 +216,13 @@ def generate_listener_class(
         imports.append("org.bukkit.Bukkit")
         imports.append("org.bukkit.NamespacedKey")
         imports.append("org.bukkit.inventory.ShapelessRecipe")
+        imports.append("org.bukkit.Material")
+        imports.append("org.bukkit.inventory.ItemStack")
+        imports.append("org.bukkit.plugin.java.JavaPlugin")
+    if "AddShapedRecipe" in action_names:
+        imports.append("org.bukkit.Bukkit")
+        imports.append("org.bukkit.NamespacedKey")
+        imports.append("org.bukkit.inventory.ShapedRecipe")
         imports.append("org.bukkit.Material")
         imports.append("org.bukkit.inventory.ItemStack")
         imports.append("org.bukkit.plugin.java.JavaPlugin")
@@ -355,6 +364,8 @@ def generate_command_class(
         & {
             "GiveItem", "DropItem", "RemoveItem", "SetItemInHand",
             "SetBlockType", "FillRegion", "SetEntityEquipment", "HasItem",
+            "SetArmor", "OpenBook", "SpawnFallingBlock",
+            "IsHoldingItem", "BlockIsType",
         }
     )
     if needs_material:
@@ -384,7 +395,7 @@ def generate_command_class(
         imports.append("org.bukkit.Bukkit")
     if "PlaySound" in action_names:
         imports.append("org.bukkit.Sound")
-    if "TeleportPlayer" in action_names or "SetVelocity" in action_names or "TeleportEntity" in action_names:
+    if action_names & {"TeleportPlayer", "SetVelocity", "TeleportEntity", "SetSpawnLocation"}:
         imports.append("org.bukkit.Location")
     if "SetVelocity" in action_names or "SetEntityVelocity" in action_names:
         imports.append("org.bukkit.util.Vector")
@@ -394,17 +405,15 @@ def generate_command_class(
         imports.append("org.bukkit.ChatColor")
     if "SetGameMode" in action_names or "GameModeEquals" in action_names:
         imports.append("org.bukkit.GameMode")
-    if (
-        "AddPotionEffect" in action_names
-        or "ApplyPotionEffect" in action_names
-        or "RemovePotionEffect" in action_names
-        or "ApplyEntityPotionEffect" in action_names
-    ):
+    if action_names & {
+        "AddPotionEffect", "ApplyPotionEffect", "RemovePotionEffect",
+        "ApplyEntityPotionEffect", "HasPotionEffect",
+    }:
         imports.append("org.bukkit.potion.PotionEffect")
         imports.append("org.bukkit.potion.PotionEffectType")
     if "SpawnParticle" in action_names or "SpawnParticles" in action_names:
         imports.append("org.bukkit.Particle")
-    if "SpawnEntity" in action_names:
+    if action_names & {"SpawnEntity", "SpawnFirework"}:
         imports.append("org.bukkit.entity.EntityType")
     if "GrantPermission" in action_names or "SetMetadata" in action_names:
         imports.append("org.bukkit.plugin.java.JavaPlugin")
@@ -461,6 +470,13 @@ def generate_command_class(
         imports.append("org.bukkit.Bukkit")
         imports.append("org.bukkit.NamespacedKey")
         imports.append("org.bukkit.inventory.ShapelessRecipe")
+        imports.append("org.bukkit.Material")
+        imports.append("org.bukkit.inventory.ItemStack")
+        imports.append("org.bukkit.plugin.java.JavaPlugin")
+    if "AddShapedRecipe" in action_names:
+        imports.append("org.bukkit.Bukkit")
+        imports.append("org.bukkit.NamespacedKey")
+        imports.append("org.bukkit.inventory.ShapedRecipe")
         imports.append("org.bukkit.Material")
         imports.append("org.bukkit.inventory.ItemStack")
         imports.append("org.bukkit.plugin.java.JavaPlugin")

@@ -1,7 +1,7 @@
 """Plugin configuration model."""
 
 import re
-from typing import List
+from typing import ClassVar, List, Set
 
 from pydantic import BaseModel, field_validator
 
@@ -18,6 +18,16 @@ class PluginConfig(BaseModel):
     description: str
     author: str
     blocks: List[Block]
+    paper_version: str = "1.21.1"
+
+    SUPPORTED_PAPER_VERSIONS: ClassVar[Set[str]] = {"1.20.1", "1.20.4", "1.20.6", "1.21.1", "1.21.4"}
+
+    @field_validator("paper_version")
+    @classmethod
+    def validate_paper_version(cls, v: str) -> str:
+        if v not in cls.SUPPORTED_PAPER_VERSIONS:
+            raise ValueError(f"Unsupported Paper version: {v}. Supported: {', '.join(sorted(cls.SUPPORTED_PAPER_VERSIONS))}")
+        return v
 
     @field_validator("name")
     @classmethod

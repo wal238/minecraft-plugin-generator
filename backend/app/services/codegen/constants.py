@@ -34,12 +34,34 @@ EVENT_IMPORTS: Dict[str, str] = {
     "WeatherChangeEvent": "org.bukkit.event.weather.WeatherChangeEvent",
     "ThunderChangeEvent": "org.bukkit.event.weather.ThunderChangeEvent",
     "ServerListPingEvent": "org.bukkit.event.server.ServerListPingEvent",
+    # Inventory Events
+    "InventoryClickEvent": "org.bukkit.event.inventory.InventoryClickEvent",
+    "InventoryOpenEvent": "org.bukkit.event.inventory.InventoryOpenEvent",
+    "InventoryCloseEvent": "org.bukkit.event.inventory.InventoryCloseEvent",
+    # More Player Events
+    "PlayerFishEvent": "org.bukkit.event.player.PlayerFishEvent",
+    "PlayerBedEnterEvent": "org.bukkit.event.player.PlayerBedEnterEvent",
+    "PlayerBedLeaveEvent": "org.bukkit.event.player.PlayerBedLeaveEvent",
+    "PlayerChangedWorldEvent": "org.bukkit.event.player.PlayerChangedWorldEvent",
+    "PlayerItemConsumeEvent": "org.bukkit.event.player.PlayerItemConsumeEvent",
+    "PlayerBucketFillEvent": "org.bukkit.event.player.PlayerBucketFillEvent",
+    "PlayerBucketEmptyEvent": "org.bukkit.event.player.PlayerBucketEmptyEvent",
+    # More Entity Events
+    "ProjectileHitEvent": "org.bukkit.event.entity.ProjectileHitEvent",
+    "EntityTameEvent": "org.bukkit.event.entity.EntityTameEvent",
+    "EntityExplodeEvent": "org.bukkit.event.entity.EntityExplodeEvent",
+    "FoodLevelChangeEvent": "org.bukkit.event.entity.FoodLevelChangeEvent",
+    # More Block Events
+    "SignChangeEvent": "org.bukkit.event.block.SignChangeEvent",
     # GUI Events
     "OnGUIClick": "org.bukkit.event.inventory.InventoryClickEvent",
 }
 
 # Mapping of block event names to Java event class names
 EVENT_CLASS_NAMES: Dict[str, str] = {
+    "InventoryClickEvent": "InventoryClickEvent",
+    "InventoryOpenEvent": "InventoryOpenEvent",
+    "InventoryCloseEvent": "InventoryCloseEvent",
     "OnGUIClick": "InventoryClickEvent",
 }
 
@@ -74,6 +96,25 @@ EVENT_PLAYER_ACCESSOR: Dict[str, str] = {
     "WeatherChangeEvent": "null",  # No player involved
     "ThunderChangeEvent": "null",
     "ServerListPingEvent": "null",
+    # Inventory events
+    "InventoryClickEvent": "(event.getWhoClicked() instanceof Player ? (Player) event.getWhoClicked() : null)",
+    "InventoryOpenEvent": "(event.getPlayer() instanceof Player ? (Player) event.getPlayer() : null)",
+    "InventoryCloseEvent": "(event.getPlayer() instanceof Player ? (Player) event.getPlayer() : null)",
+    # More Player events
+    "PlayerFishEvent": "event.getPlayer()",
+    "PlayerBedEnterEvent": "event.getPlayer()",
+    "PlayerBedLeaveEvent": "event.getPlayer()",
+    "PlayerChangedWorldEvent": "event.getPlayer()",
+    "PlayerItemConsumeEvent": "event.getPlayer()",
+    "PlayerBucketFillEvent": "event.getPlayer()",
+    "PlayerBucketEmptyEvent": "event.getPlayer()",
+    # More Entity events
+    "ProjectileHitEvent": "(event.getEntity().getShooter() instanceof Player ? (Player) event.getEntity().getShooter() : null)",
+    "EntityTameEvent": "(event.getOwner() instanceof Player ? (Player) event.getOwner() : null)",
+    "EntityExplodeEvent": "null",
+    "FoodLevelChangeEvent": "(event.getEntity() instanceof Player ? (Player) event.getEntity() : null)",
+    # More Block events
+    "SignChangeEvent": "event.getPlayer()",
     # GUI events
     "OnGUIClick": "(event.getWhoClicked() instanceof Player ? (Player) event.getWhoClicked() : null)",
 }
@@ -90,6 +131,13 @@ EVENTS_WITHOUT_PLAYER: set = {
     "WeatherChangeEvent",
     "ThunderChangeEvent",
     "ServerListPingEvent",
+    "EntityExplodeEvent",
+    "ProjectileHitEvent",
+    "EntityTameEvent",
+    "FoodLevelChangeEvent",
+    "InventoryClickEvent",
+    "InventoryOpenEvent",
+    "InventoryCloseEvent",
 }
 
 BLOCK_EVENT_NAMES: set = {
@@ -98,6 +146,7 @@ BLOCK_EVENT_NAMES: set = {
     "BlockBurnEvent",
     "BlockIgniteEvent",
     "BlockGrowEvent",
+    "SignChangeEvent",
 }
 
 WORLD_EVENT_NAMES: set = {

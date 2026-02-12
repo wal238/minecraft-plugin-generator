@@ -34,6 +34,7 @@ export const ITEM_OPTIONS = {
     'DIAMOND', 'EMERALD', 'LAPIS_LAZULI', 'REDSTONE', 'COAL', 'CHARCOAL',
     'IRON_INGOT', 'GOLD_INGOT', 'COPPER_INGOT', 'NETHERITE_INGOT', 'NETHERITE_SCRAP',
     'AMETHYST_SHARD', 'ENDER_PEARL', 'ENDER_EYE', 'SLIME_BALL', 'BLAZE_ROD', 'GHAST_TEAR', 'NETHER_STAR',
+    'ARMADILLO_SCUTE', 'WIND_CHARGE', 'BREEZE_ROD',
   ],
   BLOCKS: [
     'STONE', 'COBBLESTONE', 'DIRT', 'GRASS_BLOCK',
@@ -42,6 +43,11 @@ export const ITEM_OPTIONS = {
     'STONE_BRICKS', 'GLASS', 'SAND', 'GRAVEL',
     'CRAFTING_TABLE', 'FURNACE', 'CHEST', 'LADDER', 'BOOKSHELF',
     'IRON_BLOCK', 'DIAMOND_BLOCK', 'EMERALD_BLOCK', 'GOLD_BLOCK', 'COPPER_BLOCK',
+    'CHERRY_PLANKS', 'BAMBOO_PLANKS', 'BAMBOO_BLOCK',
+    'TUFF', 'TUFF_BRICKS', 'POLISHED_TUFF',
+    'COPPER_TRAPDOOR', 'COPPER_DOOR', 'COPPER_GRATE', 'COPPER_BULB',
+    'TRIAL_SPAWNER', 'VAULT',
+    'CRAFTER',
   ],
   MISC: [
     'BUCKET', 'WATER_BUCKET', 'LAVA_BUCKET', 'MILK_BUCKET',
@@ -111,6 +117,26 @@ export const SOUND_OPTIONS = {
     'ENTITY_CHICKEN_AMBIENT',
     'ENTITY_WOLF_AMBIENT',
     'ENTITY_CAT_AMBIENT',
+  ],
+  '1.21 SOUNDS': [
+    'ENTITY_BREEZE_INHALE',
+    'ENTITY_BREEZE_WIND_BURST',
+    'ENTITY_BREEZE_JUMP',
+    'ENTITY_BREEZE_LAND',
+    'ENTITY_BREEZE_DEATH',
+    'ENTITY_BREEZE_IDLE_GROUND',
+    'ENTITY_BREEZE_IDLE_AIR',
+    'ENTITY_BREEZE_SLIDE',
+    'ENTITY_BREEZE_SHOOT',
+    'BLOCK_VAULT_ACTIVATE',
+    'BLOCK_VAULT_CLOSE_SHUTTER',
+    'BLOCK_VAULT_OPEN_SHUTTER',
+    'BLOCK_VAULT_DEACTIVATE',
+    'BLOCK_VAULT_EJECT_ITEM',
+    'BLOCK_TRIAL_SPAWNER_SPAWN_MOB',
+    'BLOCK_TRIAL_SPAWNER_DETECT_PLAYER',
+    'BLOCK_TRIAL_SPAWNER_ABOUT_TO_SPAWN_ITEM',
+    'BLOCK_TRIAL_SPAWNER_SPAWN_ITEM',
   ],
 };
 
@@ -199,6 +225,18 @@ export const PARTICLE_OPTIONS = {
     'DRIP_WATER',
     'DRIP_LAVA',
   ],
+  '1.21': [
+    'GUST',
+    'GUST_EMITTER_LARGE',
+    'GUST_EMITTER_SMALL',
+    'TRIAL_SPAWNER_DETECTION',
+    'TRIAL_SPAWNER_DETECTION_OMINOUS',
+    'VAULT_CONNECTION',
+    'INFESTED',
+    'OMINOUS_SPAWNING',
+    'RAID_OMEN',
+    'TRIAL_OMEN',
+  ],
 };
 
 // ============================================
@@ -229,6 +267,87 @@ export const ENTITY_OPTIONS = {
     'TNT_MINECART', 'TEXT_DISPLAY',
   ],
 };
+
+// ============================================
+// PROJECTILES - Used by LaunchProjectile
+// ============================================
+export const PROJECTILE_OPTIONS = [
+  { value: 'SNOWBALL', label: 'Snowball' },
+  { value: 'ARROW', label: 'Arrow' },
+  { value: 'EGG', label: 'Egg' },
+  { value: 'ENDER_PEARL', label: 'Ender Pearl' },
+  { value: 'FIREBALL', label: 'Fireball' },
+  { value: 'SMALL_FIREBALL', label: 'Small Fireball' },
+  { value: 'WITHER_SKULL', label: 'Wither Skull' },
+  { value: 'TRIDENT', label: 'Trident' },
+];
+
+// ============================================
+// FIREWORK TYPES - Used by SpawnFirework
+// ============================================
+export const FIREWORK_TYPE_OPTIONS = [
+  { value: 'BALL', label: 'Ball' },
+  { value: 'BALL_LARGE', label: 'Large Ball' },
+  { value: 'STAR', label: 'Star' },
+  { value: 'CREEPER', label: 'Creeper Face' },
+  { value: 'BURST', label: 'Burst' },
+];
+
+// ============================================
+// FIREWORK COLORS - Used by SpawnFirework
+// ============================================
+export const FIREWORK_COLOR_OPTIONS = [
+  { value: 'RED', label: 'Red' },
+  { value: 'BLUE', label: 'Blue' },
+  { value: 'GREEN', label: 'Green' },
+  { value: 'YELLOW', label: 'Yellow' },
+  { value: 'WHITE', label: 'White' },
+  { value: 'ORANGE', label: 'Orange' },
+  { value: 'PURPLE', label: 'Purple' },
+  { value: 'AQUA', label: 'Aqua' },
+  { value: 'LIME', label: 'Lime' },
+  { value: 'FUCHSIA', label: 'Fuchsia' },
+];
+
+// ============================================
+// BIOMES - Used by IsInBiome condition
+// ============================================
+export const BIOME_OPTIONS = {
+  OVERWORLD: [
+    'PLAINS', 'SUNFLOWER_PLAINS', 'FOREST', 'FLOWER_FOREST', 'BIRCH_FOREST',
+    'DARK_FOREST', 'JUNGLE', 'SPARSE_JUNGLE', 'BAMBOO_JUNGLE', 'TAIGA',
+    'SNOWY_TAIGA', 'OLD_GROWTH_PINE_TAIGA', 'OLD_GROWTH_SPRUCE_TAIGA',
+    'SWAMP', 'MANGROVE_SWAMP', 'DESERT', 'SAVANNA', 'SAVANNA_PLATEAU',
+    'BADLANDS', 'WOODED_BADLANDS', 'MEADOW', 'CHERRY_GROVE',
+    'BEACH', 'SNOWY_BEACH', 'STONY_SHORE', 'OCEAN', 'DEEP_OCEAN',
+    'WARM_OCEAN', 'LUKEWARM_OCEAN', 'COLD_OCEAN', 'FROZEN_OCEAN',
+    'RIVER', 'FROZEN_RIVER', 'SNOWY_PLAINS', 'ICE_SPIKES',
+    'WINDSWEPT_HILLS', 'WINDSWEPT_GRAVELLY_HILLS', 'WINDSWEPT_FOREST',
+    'MUSHROOM_FIELDS', 'GROVE', 'SNOWY_SLOPES', 'FROZEN_PEAKS',
+    'JAGGED_PEAKS', 'STONY_PEAKS',
+  ],
+  UNDERGROUND: [
+    'DRIPSTONE_CAVES', 'LUSH_CAVES', 'DEEP_DARK',
+  ],
+  NETHER: [
+    'NETHER_WASTES', 'SOUL_SAND_VALLEY', 'CRIMSON_FOREST',
+    'WARPED_FOREST', 'BASALT_DELTAS',
+  ],
+  END: [
+    'THE_END', 'END_HIGHLANDS', 'END_MIDLANDS', 'SMALL_END_ISLANDS', 'END_BARRENS',
+  ],
+};
+
+// ============================================
+// PAPER VERSIONS - Used by version selector
+// ============================================
+export const PAPER_VERSION_OPTIONS = [
+  { value: '1.20.1', label: '1.20.1' },
+  { value: '1.20.4', label: '1.20.4' },
+  { value: '1.20.6', label: '1.20.6' },
+  { value: '1.21.1', label: '1.21.1 (recommended)' },
+  { value: '1.21.4', label: '1.21.4' },
+];
 
 // ============================================
 // WORLDS - Fallback if backend world fetch fails
@@ -285,6 +404,18 @@ export const BRANCH_CONDITION_TYPE_OPTIONS = [
   { value: 'IsFlying', label: 'Is Flying' },
   { value: 'IsOp', label: 'Is Op' },
   { value: 'CheckCooldown', label: 'Cooldown Ready' },
+  { value: 'IsHoldingItem', label: 'Is Holding Item' },
+  { value: 'IsRaining', label: 'Is Raining' },
+  { value: 'IsThundering', label: 'Is Thundering' },
+  { value: 'HasPotionEffect', label: 'Has Potion Effect' },
+  { value: 'IsOnGround', label: 'Is On Ground' },
+  { value: 'IsInWater', label: 'Is In Water' },
+  { value: 'RandomChance', label: 'Random Chance' },
+  { value: 'BlockIsType', label: 'Block Is Type' },
+  { value: 'TimeIsDay', label: 'Time Is Day' },
+  { value: 'TimeIsNight', label: 'Time Is Night' },
+  { value: 'IsInBiome', label: 'Is In Biome' },
+  { value: 'HasExperience', label: 'Has Experience' },
   { value: 'None', label: 'None (disable condition)' },
 ];
 
@@ -354,6 +485,9 @@ export const ENCHANTMENT_OPTIONS = {
   ],
   GENERAL: [
     'VANISHING_CURSE', 'BINDING_CURSE',
+  ],
+  '1.21+': [
+    'WIND_BURST', 'DENSITY', 'BREACH',
   ],
 };
 
@@ -722,4 +856,127 @@ export const ACTION_FIELDS = {
     { name: 'slot', label: 'Slot Filter', type: 'number', min: -1, max: 53, default: '-1', hint: '-1 = any slot' },
     { name: 'cancelEvent', label: 'Cancel Click', type: 'select', options: BOOLEAN_OPTIONS, default: 'true' },
   ],
+  // New Actions
+  HealPlayer: [
+    { name: 'amount', label: 'Amount', type: 'slider', min: 1, max: 20, step: 0.5, default: '5', hint: 'Hearts to restore (2 = 1 heart)' },
+  ],
+  FeedPlayer: [
+    { name: 'amount', label: 'Amount', type: 'slider', min: 1, max: 20, step: 1, default: '5', hint: 'Hunger points to restore' },
+  ],
+  SetMaxHealth: [
+    { name: 'amount', label: 'Max Health', type: 'slider', min: 2, max: 100, step: 2, default: '20', hint: '20 = default (10 hearts)' },
+  ],
+  SetArmor: [
+    { name: 'helmet', label: 'Helmet', type: 'grouped-select', options: ITEM_OPTIONS },
+    { name: 'chestplate', label: 'Chestplate', type: 'grouped-select', options: ITEM_OPTIONS },
+    { name: 'leggings', label: 'Leggings', type: 'grouped-select', options: ITEM_OPTIONS },
+    { name: 'boots', label: 'Boots', type: 'grouped-select', options: ITEM_OPTIONS },
+  ],
+  LaunchProjectile: [
+    { name: 'projectileType', label: 'Projectile', type: 'select', options: PROJECTILE_OPTIONS },
+    { name: 'speed', label: 'Speed', type: 'slider', min: 0.5, max: 5.0, step: 0.5, default: '1.5' },
+  ],
+  SpawnFirework: [
+    { name: 'color', label: 'Color', type: 'select', options: FIREWORK_COLOR_OPTIONS, default: 'RED' },
+    { name: 'fireworkType', label: 'Effect', type: 'select', options: FIREWORK_TYPE_OPTIONS, default: 'BALL' },
+    { name: 'power', label: 'Power', type: 'slider', min: 0, max: 5, step: 1, default: '1', hint: 'Height before explosion' },
+  ],
+  SetSpawnLocation: [
+    { name: 'x', label: 'X (optional)', type: 'number', placeholder: 'Leave empty for current position' },
+    { name: 'y', label: 'Y (optional)', type: 'number', placeholder: 'Leave empty for current position' },
+    { name: 'z', label: 'Z (optional)', type: 'number', placeholder: 'Leave empty for current position' },
+  ],
+  CloseInventory: [],
+  SendTabHeaderFooter: [
+    { name: 'header', label: 'Header', type: 'text', placeholder: 'Tab list header text (supports %player%)' },
+    { name: 'footer', label: 'Footer', type: 'text', placeholder: 'Tab list footer text (supports %player%)' },
+  ],
+  SetWorldBorder: [
+    { name: 'size', label: 'Size (blocks)', type: 'number', min: 1, max: 60000000, default: '1000' },
+    { name: 'centerX', label: 'Center X', type: 'number', default: '0' },
+    { name: 'centerZ', label: 'Center Z', type: 'number', default: '0' },
+  ],
+  SpawnFallingBlock: [
+    { name: 'blockType', label: 'Block Type', type: 'grouped-select', options: ITEM_OPTIONS },
+  ],
+  OpenBook: [
+    { name: 'title', label: 'Title', type: 'text', placeholder: 'Book title' },
+    { name: 'author', label: 'Author', type: 'text', placeholder: 'Book author' },
+    { name: 'content', label: 'Content', type: 'text', placeholder: 'Text content of the book' },
+  ],
+  SetResourcePack: [
+    { name: 'url', label: 'URL', type: 'text', placeholder: 'https://example.com/pack.zip' },
+  ],
+  RideEntity: [],
+  SetWalkSpeed: [
+    { name: 'speed', label: 'Speed', type: 'slider', min: -1, max: 1, step: 0.05, default: '0.2', hint: 'Default: 0.2' },
+  ],
+  SetFlySpeed: [
+    { name: 'speed', label: 'Speed', type: 'slider', min: -1, max: 1, step: 0.05, default: '0.1', hint: 'Default: 0.1' },
+  ],
+  AddShapedRecipe: [
+    { name: 'recipeKey', label: 'Recipe Key', type: 'text', placeholder: 'my_recipe', required: true },
+    { name: 'resultItem', label: 'Result Item', type: 'grouped-select', options: ITEM_OPTIONS },
+    { name: 'resultAmount', label: 'Amount', type: 'number', min: 1, max: 64, default: '1' },
+    { name: 'shape', label: 'Shape', type: 'text', placeholder: 'AAA,BBB,CCC (3 rows)', hint: '3 rows of 3 characters each, comma-separated' },
+    { name: 'ingredients', label: 'Ingredients', type: 'text', placeholder: 'A:DIAMOND,B:GOLD_INGOT', hint: 'Map each letter to a material' },
+  ],
+  // New Conditions
+  IsHoldingItem: [
+    { name: 'itemType', label: 'Item', type: 'grouped-select', options: ITEM_OPTIONS },
+  ],
+  IsRaining: [],
+  IsThundering: [],
+  HasPotionEffect: [
+    { name: 'effectType', label: 'Effect', type: 'grouped-select', options: POTION_EFFECT_OPTIONS },
+  ],
+  IsOnGround: [],
+  IsInWater: [],
+  RandomChance: [
+    { name: 'chance', label: 'Chance (%)', type: 'slider', min: 1, max: 100, step: 1, default: '50', hint: 'Percentage chance (0-100)' },
+  ],
+  BlockIsType: [
+    { name: 'blockType', label: 'Block Type', type: 'grouped-select', options: ITEM_OPTIONS },
+  ],
+  TimeIsDay: [],
+  TimeIsNight: [],
+  IsInBiome: [
+    { name: 'biome', label: 'Biome', type: 'grouped-select', options: BIOME_OPTIONS },
+  ],
+  HasExperience: [
+    { name: 'amount', label: 'Minimum XP', type: 'number', min: 0, max: 100000, default: '100' },
+  ],
+  // New Event Fields
+  InventoryClickEvent: [],
+  InventoryOpenEvent: [],
+  InventoryCloseEvent: [],
+  PlayerFishEvent: [],
+  PlayerBedEnterEvent: [],
+  PlayerBedLeaveEvent: [],
+  PlayerChangedWorldEvent: [],
+  PlayerItemConsumeEvent: [],
+  PlayerBucketFillEvent: [],
+  PlayerBucketEmptyEvent: [],
+  ProjectileHitEvent: [],
+  EntityTameEvent: [],
+  EntityExplodeEvent: [],
+  FoodLevelChangeEvent: [],
+  SignChangeEvent: [],
+};
+
+// ============================================
+// VERSION-SPECIFIC ITEMS
+// Items that require a minimum Paper version
+// ============================================
+export const VERSION_SPECIFIC_ITEMS = {
+  entities: {
+    ARMADILLO: '1.20.6',
+    BREEZE: '1.21.1',
+    BOGGED: '1.21.1',
+  },
+  enchantments: {
+    WIND_BURST: '1.21.1',
+    DENSITY: '1.21.1',
+    BREACH: '1.21.1',
+  },
 };

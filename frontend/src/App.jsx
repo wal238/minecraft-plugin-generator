@@ -26,6 +26,7 @@ export default function App() {
   const mainPackage = usePluginStore((s) => s.mainPackage);
   const description = usePluginStore((s) => s.description);
   const author = usePluginStore((s) => s.author);
+  const paperVersion = usePluginStore((s) => s.paperVersion);
   const blocks = usePluginStore((s) => s.blocks);
   const selectedBlockId = usePluginStore((s) => s.selectedBlockId);
   const loading = usePluginStore((s) => s.loading);
@@ -290,6 +291,7 @@ export default function App() {
       main_package: mainPackage,
       description,
       author,
+      paper_version: paperVersion,
       blocks: payloadBlocks
     };
   };
@@ -449,6 +451,7 @@ export default function App() {
       if (config.description) usePluginStore.getState().setDescription(config.description);
       if (config.author) usePluginStore.getState().setAuthor(config.author);
       if (config.blocks) usePluginStore.getState().setBlocks(config.blocks);
+      if (config.paperVersion) usePluginStore.getState().setPaperVersion(config.paperVersion);
     }
     setCurrentProjectId(project?.id || null);
     setCurrentProjectVersion(project?.version || null);
@@ -470,6 +473,7 @@ export default function App() {
       mainPackage: state.mainPackage,
       description: state.description,
       author: state.author,
+      paperVersion: state.paperVersion,
       blocks: state.blocks,
     };
   };

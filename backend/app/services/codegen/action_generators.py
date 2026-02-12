@@ -74,6 +74,22 @@ def generate_action_code(blocks: List[Block], event_name: str = "") -> str:
         "RemoveScoreboard",
         "GetTempVar",
         "SendConfigValue",
+        "HealPlayer",
+        "FeedPlayer",
+        "SetMaxHealth",
+        "SetArmor",
+        "LaunchProjectile",
+        "SpawnFirework",
+        "SetSpawnLocation",
+        "CloseInventory",
+        "SendTabHeaderFooter",
+        "SetWalkSpeed",
+        "SetFlySpeed",
+        "OpenBook",
+        "SetResourcePack",
+        "SetWorldBorder",
+        "SpawnFallingBlock",
+        "RideEntity",
     }
 
     needs_entity = bool(
@@ -97,6 +113,9 @@ def generate_action_code(blocks: List[Block], event_name: str = "") -> str:
             "SpawnParticle",
             "SpawnParticles",
             "FillRegion",
+            "SetWorldBorder",
+            "SpawnFallingBlock",
+            "RideEntity",
         }
     )
     needs_living = bool(
@@ -124,9 +143,11 @@ def generate_action_code(blocks: List[Block], event_name: str = "") -> str:
             "CreateExplosion",
             "SpawnParticle",
             "SpawnParticles",
+            "SetWorldBorder",
+            "SpawnFallingBlock",
         }
     )
-    needs_plugin = bool(action_names & {"GrantPermission", "SetMetadata", "SaveConfig", "SendConfigValue", "CreateBossBar", "RemoveBossBar", "AddShapelessRecipe"})
+    needs_plugin = bool(action_names & {"GrantPermission", "SetMetadata", "SaveConfig", "SendConfigValue", "CreateBossBar", "RemoveBossBar", "AddShapelessRecipe", "AddShapedRecipe"})
     needs_gui = bool(action_names & {"CreateGUI", "AddGUIItem", "OpenGUI"})
     needs_temp_vars = bool(action_names & {"SetTempVar", "GetTempVar"})
 
@@ -313,6 +334,47 @@ def generate_action_code(blocks: List[Block], event_name: str = "") -> str:
                 _gen_get_temp_var(lines, props, is_command)
             elif block.name == "AddShapelessRecipe":
                 _gen_add_shapeless_recipe(lines, props)
+            elif block.name == "AddShapedRecipe":
+                _gen_add_shaped_recipe(lines, props)
+            elif block.name == "HealPlayer":
+                amount = props.get("amount", "5")
+                lines.append(f"        player.setHealth(Math.min(player.getHealth() + {amount}, player.getAttribute(org.bukkit.attribute.Attribute.GENERIC_MAX_HEALTH).getValue()));")
+            elif block.name == "FeedPlayer":
+                amount = props.get("amount", "5")
+                lines.append(f"        player.setFoodLevel(Math.min(player.getFoodLevel() + {amount}, 20));")
+            elif block.name == "SetMaxHealth":
+                amount = props.get("amount", "20")
+                lines.append(f"        player.getAttribute(org.bukkit.attribute.Attribute.GENERIC_MAX_HEALTH).setBaseValue({amount});")
+            elif block.name == "SetArmor":
+                _gen_set_armor(lines, props)
+            elif block.name == "LaunchProjectile":
+                _gen_launch_projectile(lines, props)
+            elif block.name == "SpawnFirework":
+                _gen_spawn_firework(lines, props)
+            elif block.name == "SetSpawnLocation":
+                _gen_set_spawn_location(lines, props)
+            elif block.name == "CloseInventory":
+                lines.append("        player.closeInventory();")
+            elif block.name == "SendTabHeaderFooter":
+                _gen_send_tab_header_footer(lines, props, is_command)
+            elif block.name == "SetWorldBorder":
+                _gen_set_world_border(lines, props, event_name, is_command)
+            elif block.name == "SpawnFallingBlock":
+                _gen_spawn_falling_block(lines, props, event_name, is_command)
+            elif block.name == "OpenBook":
+                _gen_open_book(lines, props, is_command)
+            elif block.name == "SetResourcePack":
+                _gen_set_resource_pack(lines, props)
+            elif block.name == "RideEntity":
+                lines.append("        if (targetEntity != null && targetEntity != player) {")
+                lines.append("            targetEntity.addPassenger(player);")
+                lines.append("        }")
+            elif block.name == "SetWalkSpeed":
+                speed = props.get("speed", "0.2")
+                lines.append(f"        player.setWalkSpeed({speed}f);")
+            elif block.name == "SetFlySpeed":
+                speed = props.get("speed", "0.1")
+                lines.append(f"        player.setFlySpeed({speed}f);")
             elif block.name == "DelayAction":
                 _gen_delay_action(lines, blocks, block, event_name)
                 break  # remaining blocks are inside the runnable
@@ -354,6 +416,36 @@ def generate_action_code(blocks: List[Block], event_name: str = "") -> str:
                 lines.append(f'        if (player == null || player.getFoodLevel() >= {props.get("hunger", "5")}) return;')
             elif block.name == "LevelAbove":
                 lines.append(f'        if (player == null || player.getLevel() <= {props.get("level", "10")}) return;')
+            elif block.name == "IsHoldingItem":
+                item_type = sanitize_java_string(props.get("itemType", "DIAMOND")).upper()
+                lines.append(f'        if (player == null || player.getInventory().getItemInMainHand().getType() != Material.{item_type}) return;')
+            elif block.name == "IsRaining":
+                lines.append('        if (player == null || !player.getWorld().hasStorm()) return;')
+            elif block.name == "IsThundering":
+                lines.append('        if (player == null || !player.getWorld().isThundering()) return;')
+            elif block.name == "HasPotionEffect":
+                effect_type = sanitize_java_string(props.get("effectType", "SPEED")).upper()
+                lines.append(f'        if (player == null || !player.hasPotionEffect(PotionEffectType.{effect_type})) return;')
+            elif block.name == "IsOnGround":
+                lines.append('        if (player == null || !player.isOnGround()) return;')
+            elif block.name == "IsInWater":
+                lines.append('        if (player == null || !player.isInWater()) return;')
+            elif block.name == "RandomChance":
+                chance = props.get("chance", "50")
+                lines.append(f'        if (Math.random() * 100 >= {chance}) return;')
+            elif block.name == "BlockIsType":
+                block_type_val = sanitize_java_string(props.get("blockType", "STONE")).upper()
+                lines.append(f'        if (!(event instanceof org.bukkit.event.block.BlockEvent) || ((org.bukkit.event.block.BlockEvent) event).getBlock().getType() != Material.{block_type_val}) return;')
+            elif block.name == "TimeIsDay":
+                lines.append('        if (player == null || player.getWorld().getTime() >= 12300) return;')
+            elif block.name == "TimeIsNight":
+                lines.append('        if (player == null || player.getWorld().getTime() < 12300) return;')
+            elif block.name == "IsInBiome":
+                biome = sanitize_java_string(props.get("biome", "PLAINS")).upper()
+                lines.append(f'        if (player == null || player.getLocation().getBlock().getBiome() != org.bukkit.block.Biome.{biome}) return;')
+            elif block.name == "HasExperience":
+                amount = props.get("amount", "100")
+                lines.append(f'        if (player == null || player.getTotalExperience() < {amount}) return;')
             elif block.name == "BranchIf":
                 expression = build_branch_if_expression(props)
                 lines.append(f"        if ({expression}) {{")
@@ -1376,3 +1468,134 @@ def _gen_add_shapeless_recipe(lines: List[str], props: dict) -> None:
         lines.append(f"            recipe.addIngredient(Material.{ingredient});")
     lines.append(f"            Bukkit.addRecipe(recipe);")
     lines.append(f"        }}")
+
+
+def _gen_set_armor(lines, props):
+    helmet = sanitize_java_string(props.get("helmet", "")).upper()
+    chestplate = sanitize_java_string(props.get("chestplate", "")).upper()
+    leggings = sanitize_java_string(props.get("leggings", "")).upper()
+    boots = sanitize_java_string(props.get("boots", "")).upper()
+    if helmet:
+        lines.append(f"        player.getInventory().setHelmet(new ItemStack(Material.{helmet}, 1));")
+    if chestplate:
+        lines.append(f"        player.getInventory().setChestplate(new ItemStack(Material.{chestplate}, 1));")
+    if leggings:
+        lines.append(f"        player.getInventory().setLeggings(new ItemStack(Material.{leggings}, 1));")
+    if boots:
+        lines.append(f"        player.getInventory().setBoots(new ItemStack(Material.{boots}, 1));")
+
+
+def _gen_launch_projectile(lines, props):
+    projectile = sanitize_java_string(props.get("projectileType", "SNOWBALL")).upper()
+    speed = props.get("speed", "1.5")
+    proj_class_map = {
+        "SNOWBALL": "Snowball",
+        "ARROW": "Arrow",
+        "EGG": "Egg",
+        "ENDER_PEARL": "EnderPearl",
+        "FIREBALL": "Fireball",
+        "SMALL_FIREBALL": "SmallFireball",
+        "WITHER_SKULL": "WitherSkull",
+        "TRIDENT": "Trident",
+    }
+    proj_class = proj_class_map.get(projectile, "Snowball")
+    lines.append(f"        org.bukkit.entity.{proj_class} proj = player.launchProjectile(org.bukkit.entity.{proj_class}.class);")
+    lines.append(f"        proj.setVelocity(player.getLocation().getDirection().multiply({speed}));")
+
+
+def _gen_spawn_firework(lines, props):
+    color = sanitize_java_string(props.get("color", "RED")).upper()
+    effect_type = sanitize_java_string(props.get("fireworkType", "BALL")).upper()
+    power = props.get("power", "1")
+    lines.append("        {")
+    lines.append("            org.bukkit.entity.Firework fw = (org.bukkit.entity.Firework) player.getWorld().spawnEntity(player.getLocation(), EntityType.FIREWORK_ROCKET);")
+    lines.append("            org.bukkit.inventory.meta.FireworkMeta fwMeta = fw.getFireworkMeta();")
+    lines.append(f"            fwMeta.addEffect(org.bukkit.FireworkEffect.builder().withColor(org.bukkit.Color.{color}).with(org.bukkit.FireworkEffect.Type.{effect_type}).build());")
+    lines.append(f"            fwMeta.setPower({power});")
+    lines.append("            fw.setFireworkMeta(fwMeta);")
+    lines.append("        }")
+
+
+def _gen_set_spawn_location(lines, props):
+    x = props.get("x", "")
+    y = props.get("y", "")
+    z = props.get("z", "")
+    if x and y and z:
+        lines.append(f"        player.setBedSpawnLocation(new Location(player.getWorld(), {x}, {y}, {z}), true);")
+    else:
+        lines.append("        player.setBedSpawnLocation(player.getLocation(), true);")
+
+
+def _gen_send_tab_header_footer(lines, props, is_command):
+    header = sanitize_java_string(props.get("header", ""))
+    footer = sanitize_java_string(props.get("footer", ""))
+    if "%player%" in header:
+        header = header.replace("%player%", '" + player.getName() + "')
+    header = replace_arg_placeholders(header, is_command)
+    if "%player%" in footer:
+        footer = footer.replace("%player%", '" + player.getName() + "')
+    footer = replace_arg_placeholders(footer, is_command)
+    lines.append(f'        player.setPlayerListHeaderFooter("{header}", "{footer}");')
+
+
+def _gen_set_world_border(lines, props, event_name, is_command):
+    size = props.get("size", "1000")
+    center_x = props.get("centerX", "0")
+    center_z = props.get("centerZ", "0")
+    lines.append("        {")
+    lines.append("            org.bukkit.WorldBorder border = player.getWorld().getWorldBorder();")
+    lines.append(f"            border.setCenter({center_x}, {center_z});")
+    lines.append(f"            border.setSize({size});")
+    lines.append("        }")
+
+
+def _gen_spawn_falling_block(lines, props, event_name, is_command):
+    block_type = sanitize_java_string(props.get("blockType", "SAND")).upper()
+    lines.append("        {")
+    lines.append(f"            org.bukkit.block.data.BlockData fallData = org.bukkit.Bukkit.createBlockData(Material.{block_type});")
+    lines.append("            player.getWorld().spawnFallingBlock(player.getLocation().add(0, 5, 0), fallData);")
+    lines.append("        }")
+
+
+def _gen_open_book(lines, props, is_command):
+    title = sanitize_java_string(props.get("title", "Book"))
+    author = sanitize_java_string(props.get("author", "Server"))
+    content = sanitize_java_string(props.get("content", "Hello!"))
+    lines.append("        {")
+    lines.append(f'            ItemStack book = new ItemStack(Material.WRITTEN_BOOK, 1);')
+    lines.append(f"            org.bukkit.inventory.meta.BookMeta bookMeta = (org.bukkit.inventory.meta.BookMeta) book.getItemMeta();")
+    lines.append(f'            bookMeta.setTitle("{title}");')
+    lines.append(f'            bookMeta.setAuthor("{author}");')
+    lines.append(f'            bookMeta.addPage("{content}");')
+    lines.append(f"            book.setItemMeta(bookMeta);")
+    lines.append(f"            player.openBook(book);")
+    lines.append("        }")
+
+
+def _gen_set_resource_pack(lines, props):
+    url = sanitize_java_string(props.get("url", ""))
+    lines.append(f'        player.setResourcePack("{url}");')
+
+
+def _gen_add_shaped_recipe(lines, props):
+    recipe_key = sanitize_java_string(props.get("recipeKey", "custom_shaped")).lower()
+    result_item = sanitize_java_string(props.get("resultItem", "DIAMOND")).upper()
+    result_amount = props.get("resultAmount", "1")
+    shape_raw = props.get("shape", "AAA,BBB,CCC")
+    ingredients_raw = props.get("ingredients", "A:DIAMOND,B:GOLD_INGOT,C:IRON_INGOT")
+    shape_rows = [sanitize_java_string(r.strip()) for r in shape_raw.split(",") if r.strip()]
+    lines.append("        {")
+    lines.append(f'            NamespacedKey key = new NamespacedKey(plugin, "{recipe_key}");')
+    lines.append(f"            ShapedRecipe recipe = new ShapedRecipe(key, new ItemStack(Material.{result_item}, {result_amount}));")
+    shape_args = ", ".join(f'"{row}"' for row in shape_rows[:3])
+    lines.append(f"            recipe.shape({shape_args});")
+    for mapping in ingredients_raw.split(","):
+        mapping = mapping.strip()
+        if ":" in mapping:
+            char, mat = mapping.split(":", 1)
+            char = sanitize_java_string(char.strip())
+            mat = sanitize_java_string(mat.strip()).upper()
+            if len(char) == 1:
+                lines.append(f"            recipe.setIngredient('{char}', Material.{mat});")
+    lines.append("            Bukkit.addRecipe(recipe);")
+    lines.append("        }")
