@@ -54,12 +54,27 @@ export function Navbar() {
         transition: 'background 0.3s ease, border-color 0.3s ease',
       }}
     >
+      <style>{`
+        @media (max-width: 767px) {
+          .nav-desktop-links { display: none !important; }
+          .nav-mobile-hamburger { display: flex !important; }
+        }
+        @media (min-width: 768px) {
+          .nav-mobile-dropdown { display: none !important; }
+        }
+      `}</style>
       <div
-        className="flex items-center justify-between px-6 py-4"
-        style={{ maxWidth: 1200, margin: '0 auto' }}
+        style={{
+          maxWidth: 1200,
+          margin: '0 auto',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '1rem 1.5rem',
+        }}
       >
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-3" style={{ textDecoration: 'none' }}>
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none' }}>
           <div
             style={{
               width: 28,
@@ -88,7 +103,7 @@ export function Navbar() {
         </Link>
 
         {/* Center nav links — desktop */}
-        <div className="hidden md:flex items-center gap-8">
+        <div className="nav-desktop-links" style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
           {navLinks.map((link) => (
             <a
               key={link.href}
@@ -110,7 +125,7 @@ export function Navbar() {
         </div>
 
         {/* Right buttons — desktop */}
-        <div className="hidden md:flex items-center gap-3">
+        <div className="nav-desktop-links" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           {!loading && user ? (
             <UserMenu user={user} />
           ) : (
@@ -135,10 +150,15 @@ export function Navbar() {
 
         {/* Hamburger — mobile */}
         <button
-          className="flex md:hidden flex-col items-center justify-center gap-1.5"
+          className="nav-mobile-hamburger"
           onClick={() => setMobileMenuOpen((prev) => !prev)}
           aria-label="Toggle menu"
           style={{
+            display: 'none',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.375rem',
             background: 'none',
             border: 'none',
             cursor: 'pointer',
@@ -187,9 +207,9 @@ export function Navbar() {
           background: 'var(--bg-secondary)',
           borderTop: mobileMenuOpen ? '1px solid rgba(255, 255, 255, 0.06)' : 'none',
         }}
-        className="md:hidden"
+        className="nav-mobile-dropdown"
       >
-        <div className="flex flex-col px-6 py-4 gap-4">
+        <div style={{ display: 'flex', flexDirection: 'column', padding: '1rem 1.5rem', gap: '1rem' }}>
           {navLinks.map((link) => (
             <a
               key={link.href}
@@ -210,7 +230,7 @@ export function Navbar() {
             </a>
           ))}
 
-          <div className="flex flex-col gap-3 pt-2">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingTop: '0.5rem' }}>
             {!loading && user ? (
               <UserMenu user={user} />
             ) : (
