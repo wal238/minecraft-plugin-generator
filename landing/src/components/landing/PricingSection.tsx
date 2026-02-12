@@ -5,6 +5,9 @@ import { MinecraftCard } from '@/components/ui/MinecraftCard';
 import { MinecraftButton } from '@/components/ui/MinecraftButton';
 import { PricingToggle } from '@/components/ui/PricingToggle';
 import { AnimatedSection } from '@/components/ui/AnimatedSection';
+import { useUser } from '@/hooks/useUser';
+import { PLANS } from '@/lib/stripe/plans';
+import { getDefaultBuilderUrl, isAllowedReturnTo } from '@/lib/redirects';
 
 interface PlanFeature {
   label: string;
@@ -93,6 +96,61 @@ const plans: PricingPlan[] = [
 
 export function PricingSection() {
   const [isYearly, setIsYearly] = useState(false);
+  const [loadingTier, setLoadingTier] = useState<string | null>(null);
+  const { user } = useUser();
+
+  const getPriceIdForTier = (tier: string, yearly: boolean): string | null => {
+    const key = tier.toLowerCase() as keyof typeof PLANS;
+    const ids = PLANS[key]?.stripePriceIds;
+    if (!ids || ids.length === 0) return null;
+    if (yearly && ids[1]) return ids[1];
+    return ids[0] || null;
+  };
+
+  const handlePaidCheckout = async (tier: string) => {
+    const priceId = getPriceIdForTier(tier, isYearly);
+    if (!priceId) return;
+
+    const currentUrl = new URL(window.location.href);
+    const fromBuilder = currentUrl.searchParams.get('source') === 'builder';
+    const rawReturnTo = currentUrl.searchParams.get('return_to') || '';
+    const returnTo = fromBuilder && isAllowedReturnTo(rawReturnTo)
+      ? rawReturnTo
+      : getDefaultBuilderUrl();
+
+    if (!user) {
+      const loginRedirect = `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+      window.location.assign(loginRedirect);
+      return;
+    }
+
+    setLoadingTier(tier);
+    try {
+      const idempotencyKey = crypto.randomUUID();
+      const response = await fetch('/api/create-checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': idempotencyKey,
+        },
+        body: JSON.stringify({ priceId, returnTo }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || 'Failed to start checkout');
+      }
+      if (data?.url) {
+        window.location.assign(data.url);
+        return;
+      }
+      throw new Error('Checkout URL missing in response');
+    } catch (err) {
+      console.error('Checkout start failed:', err);
+      window.alert(err instanceof Error ? err.message : 'Failed to start checkout');
+    } finally {
+      setLoadingTier(null);
+    }
+  };
 
   return (
     <section id="pricing" className="section">
@@ -240,13 +298,24 @@ export function PricingSection() {
 
                   {/* CTA */}
                   <div style={{ marginTop: '0.5rem' }}>
-                    <MinecraftButton
-                      variant={plan.buttonVariant}
-                      href="/signup"
-                      className="w-full"
-                    >
-                      {plan.buttonLabel}
-                    </MinecraftButton>
+                    {plan.tier === 'STARTER' ? (
+                      <MinecraftButton
+                        variant={plan.buttonVariant}
+                        href="/signup"
+                        className="w-full"
+                      >
+                        {plan.buttonLabel}
+                      </MinecraftButton>
+                    ) : (
+                      <MinecraftButton
+                        variant={plan.buttonVariant}
+                        className="w-full"
+                        loading={loadingTier === plan.tier}
+                        onClick={() => handlePaidCheckout(plan.tier)}
+                      >
+                        {plan.buttonLabel}
+                      </MinecraftButton>
+                    )}
                   </div>
                 </div>
               </MinecraftCard>

@@ -41,10 +41,14 @@ async def require_auth(request: Request) -> dict:
         # Fetch subscription tier from profiles table
         try:
             profile = supabase.table("profiles").select(
-                "subscription_tier"
+                "subscription_tier, subscription_status, cancel_at_period_end, current_period_end"
             ).eq("id", user_id).single().execute()
-            if profile.data and profile.data.get("subscription_tier"):
-                user_dict["subscription_tier"] = profile.data["subscription_tier"]
+            if profile.data:
+                if profile.data.get("subscription_tier"):
+                    user_dict["subscription_tier"] = profile.data["subscription_tier"]
+                user_dict["subscription_status"] = profile.data.get("subscription_status")
+                user_dict["cancel_at_period_end"] = bool(profile.data.get("cancel_at_period_end", False))
+                user_dict["current_period_end"] = profile.data.get("current_period_end")
         except Exception as profile_err:
             logger.warning("Failed to fetch profile for tier info: %s", profile_err)
 

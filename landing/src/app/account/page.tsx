@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { PLANS } from '@/lib/stripe/plans';
 import type { Profile, SubscriptionTier } from '@/types';
 import { AccountActions } from './AccountActions';
+import Link from 'next/link';
 
 export default async function AccountPage() {
   const supabase = await createClient();
@@ -18,6 +19,9 @@ export default async function AccountPage() {
   const tier = ((profile as Profile | null)?.subscription_tier ?? 'free') as SubscriptionTier;
   const plan = PLANS[tier];
   const buildsUsed = (profile as Profile | null)?.builds_used_this_period ?? 0;
+  const cancelAtPeriodEnd = Boolean((profile as Profile | null)?.cancel_at_period_end);
+  const currentPeriodEnd = (profile as Profile | null)?.current_period_end;
+  const subscriptionStatus = (profile as Profile | null)?.subscription_status ?? 'active';
 
   return (
     <div className="min-h-screen px-4 py-12" style={{ background: 'var(--bg-primary)' }}>
@@ -36,11 +40,23 @@ export default async function AccountPage() {
               {plan.name}
             </span>
             {tier === 'free' && (
-              <a href="/#pricing" className="mc-btn mc-btn-green text-xs py-2 px-4">
+              <Link href="/#pricing" className="mc-btn mc-btn-green text-xs py-2 px-4">
                 UPGRADE
-              </a>
+              </Link>
             )}
           </div>
+
+          {tier !== 'free' && cancelAtPeriodEnd && (
+            <div className="mb-4 p-3 text-sm" style={{ background: 'rgba(255, 152, 0, 0.1)', border: '1px solid var(--mc-orange)', color: 'var(--text-primary)' }}>
+              Cancellation scheduled. Your paid access remains active until{' '}
+              {currentPeriodEnd ? new Date(currentPeriodEnd).toLocaleDateString() : 'the end of the current billing period'}.
+            </div>
+          )}
+          {tier === 'free' && subscriptionStatus === 'canceled' && (
+            <div className="mb-4 p-3 text-sm" style={{ background: 'rgba(255, 152, 0, 0.1)', border: '1px solid var(--mc-orange)', color: 'var(--text-primary)' }}>
+              Your subscription has ended. You are currently on the free plan.
+            </div>
+          )}
 
           {/* Usage Stats */}
           <div className="space-y-3 mt-6">

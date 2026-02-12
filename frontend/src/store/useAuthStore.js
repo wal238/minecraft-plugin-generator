@@ -1,15 +1,28 @@
 import { create } from 'zustand';
 import { supabase } from '../services/supabase';
+import { apiService } from '../services/api';
 
 const isEmailVerified = (user) => Boolean(user?.email_confirmed_at || user?.confirmed_at);
-const SESSION_HANDOFF_PARAMS = ['access_token', 'refresh_token', 'handoff'];
+const SESSION_HANDOFF_PARAMS = ['access_token', 'refresh_token', 'handoff', 'handoff_code', 'checkout'];
 
 const consumeSessionHandoff = async () => {
   if (typeof window === 'undefined' || !supabase) return;
 
   const url = new URL(window.location.href);
-  const accessToken = url.searchParams.get('access_token');
-  const refreshToken = url.searchParams.get('refresh_token');
+  const handoffCode = url.searchParams.get('handoff_code');
+  let accessToken = url.searchParams.get('access_token');
+  let refreshToken = url.searchParams.get('refresh_token');
+
+  if (handoffCode && (!accessToken || !refreshToken)) {
+    try {
+      const exchanged = await apiService.exchangeHandoffCode(handoffCode);
+      accessToken = exchanged.access_token;
+      refreshToken = exchanged.refresh_token;
+    } catch (err) {
+      console.error('Handoff code exchange failed:', err);
+    }
+  }
+
   if (!accessToken || !refreshToken) return;
 
   for (const param of SESSION_HANDOFF_PARAMS) {
@@ -30,6 +43,7 @@ const useAuthStore = create((set, get) => ({
   user: null,
   session: null,
   profile: null,
+  entitlements: null,
   loading: true,
   initialized: false,
 
@@ -45,11 +59,12 @@ const useAuthStore = create((set, get) => ({
       if (session?.user) {
         if (!isEmailVerified(session.user)) {
           await supabase.auth.signOut();
-          set({ user: null, session: null, profile: null });
+          set({ user: null, session: null, profile: null, entitlements: null });
           return;
         }
         set({ user: session.user, session });
         await get().fetchProfile(session.user.id);
+        await get().refreshEntitlements();
       }
     } catch (err) {
       console.error('Auth initialization failed:', err);
@@ -58,17 +73,18 @@ const useAuthStore = create((set, get) => ({
     }
 
     // Listen for auth state changes
-    supabase.auth.onAuthStateChange(async (event, session) => {
+    supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user && !isEmailVerified(session.user)) {
         await supabase.auth.signOut();
-        set({ user: null, session: null, profile: null });
+        set({ user: null, session: null, profile: null, entitlements: null });
         return;
       }
       set({ user: session?.user ?? null, session });
       if (session?.user) {
         await get().fetchProfile(session.user.id);
+        await get().refreshEntitlements();
       } else {
-        set({ profile: null });
+        set({ profile: null, entitlements: null });
       }
     });
   },
@@ -89,6 +105,16 @@ const useAuthStore = create((set, get) => ({
     }
   },
 
+  refreshEntitlements: async (paperVersion) => {
+    if (!supabase) return;
+    try {
+      const data = await apiService.getEntitlements(paperVersion);
+      set({ entitlements: data });
+    } catch (err) {
+      console.error('Failed to fetch entitlements:', err);
+    }
+  },
+
   getAccessToken: async () => {
     if (!supabase) return null;
     const { data: { session } } = await supabase.auth.getSession();
@@ -96,6 +122,8 @@ const useAuthStore = create((set, get) => ({
   },
 
   getTier: () => {
+    const entitlements = get().entitlements;
+    if (entitlements?.tier) return entitlements.tier;
     const profile = get().profile;
     return profile?.subscription_tier || 'free';
   },
@@ -108,7 +136,7 @@ const useAuthStore = create((set, get) => ({
   signOut: async () => {
     if (!supabase) return;
     await supabase.auth.signOut();
-    set({ user: null, session: null, profile: null });
+    set({ user: null, session: null, profile: null, entitlements: null });
   },
 }));
 

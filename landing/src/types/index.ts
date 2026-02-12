@@ -11,6 +11,7 @@ export interface Profile {
   stripe_subscription_id: string | null;
   current_period_start: string | null;
   current_period_end: string | null;
+  cancel_at_period_end: boolean;
   builds_used_this_period: number;
   build_period_start: string;
   created_at: string;

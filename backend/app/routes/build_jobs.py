@@ -3,13 +3,14 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.config import settings
-from app.middleware.auth import require_auth, optional_auth
+from app.middleware.auth import require_auth
 from app.middleware.rate_limit import limiter
 from app.models.build_job import BuildJobResponse, BuildJobStatusResponse
 from app.models.plugin_config import PluginConfig
 from app.services.build_job_service import build_job_service
 from app.services.build_worker import build_worker
 from app.services.artifact_storage import artifact_storage
+from app.services.entitlements import evaluate_block_ids
 from app.services.tier_limits import TIER_LIMITS
 from app.services.supabase_client import get_supabase_admin
 from app.utils.logger import get_logger
@@ -30,6 +31,26 @@ async def create_build_job(config: PluginConfig, request: Request, user: dict = 
         profile = await build_job_service.get_user_profile(user_id)
         tier = profile.get("subscription_tier", "free")
         max_builds = TIER_LIMITS.get(tier, TIER_LIMITS["free"])["builds_per_period"]
+        max_events = TIER_LIMITS.get(tier, TIER_LIMITS["free"])["max_events"]
+        max_actions = TIER_LIMITS.get(tier, TIER_LIMITS["free"])["max_actions"]
+
+        event_count = sum(1 for b in config.blocks if b.type.value == "event")
+        action_count = sum(1 for b in config.blocks if b.type.value != "event")
+        if max_events != -1 and event_count > max_events:
+            raise HTTPException(403, f"Your plan allows {max_events} events max.")
+        if max_actions != -1 and action_count > max_actions:
+            raise HTTPException(403, f"Your plan allows {max_actions} actions max.")
+
+        block_ids = [block.id for block in config.blocks]
+        violations, unknown_block_ids = evaluate_block_ids(
+            block_ids,
+            tier=tier,
+            paper_version=config.paper_version,
+        )
+        if unknown_block_ids:
+            raise HTTPException(400, {"code": "UNKNOWN_BLOCKS", "block_ids": unknown_block_ids})
+        if violations:
+            raise HTTPException(403, {"code": "ENTITLEMENT_VIOLATION", "violations": violations})
 
         supabase = get_supabase_admin()
         if supabase and max_builds != -1:

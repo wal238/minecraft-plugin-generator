@@ -1,14 +1,27 @@
 """Block definitions and mappings."""
 
+from copy import deepcopy
 from typing import Any, Dict, List
+
+from app.services.entitlement_policy import get_required_tier
 
 
 class BlockDefinitionService:
     """Provides available block definitions for the frontend."""
 
+    @staticmethod
+    def _with_access_metadata(blocks: Dict[str, List[Dict[str, Any]]]) -> Dict[str, List[Dict[str, Any]]]:
+        enriched = deepcopy(blocks)
+        for section in ("events", "actions", "custom_options"):
+            for block in enriched.get(section, []):
+                block.setdefault("required_tier", get_required_tier(str(block.get("id", ""))))
+                block.setdefault("min_paper_version", None)
+                block.setdefault("max_paper_version", None)
+        return enriched
+
     def get_available_blocks(self) -> Dict[str, List[Dict[str, Any]]]:
         """Return all available blocks organized by category."""
-        return {
+        blocks = {
             "events": [
                 # Player Events
                 {
@@ -1729,3 +1742,4 @@ class BlockDefinitionService:
                 },
             ],
         }
+        return self._with_access_metadata(blocks)

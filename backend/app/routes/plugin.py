@@ -9,9 +9,10 @@ from app.config import settings
 from app.middleware.auth import optional_auth, require_auth
 from app.middleware.rate_limit import limiter
 from app.models.plugin_config import PluginConfig
-from app.models.request import BlocksResponse, GenerateResponse, PreviewResponse, WorldsResponse
-from app.services.block_definitions import BlockDefinitionService
+from app.models.request import BlocksResponse, EntitlementsResponse, GenerateResponse, PreviewResponse, WorldsResponse
+from app.services.block_catalog import get_all_blocks, get_catalog_copy
 from app.services.code_generator import CodeGeneratorService
+from app.services.entitlements import evaluate_block_ids, resolve_entitlements
 from app.services.plugin_generator import PluginGeneratorService, get_download_path
 from app.services.tier_limits import TIER_LIMITS
 
@@ -23,8 +24,38 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/api")
 
 plugin_generator = PluginGeneratorService()
-block_definitions = BlockDefinitionService()
 code_generator = CodeGeneratorService()
+
+
+def _enforce_entitlements(config: PluginConfig, user: dict | None):
+    if not (user and settings.REQUIRE_AUTH):
+        return
+
+    tier = user.get("subscription_tier", "free")
+    block_ids = [block.id for block in config.blocks]
+    violations, unknown_block_ids = evaluate_block_ids(
+        block_ids,
+        tier=tier,
+        paper_version=config.paper_version,
+    )
+
+    if unknown_block_ids:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "UNKNOWN_BLOCKS",
+                "block_ids": unknown_block_ids,
+            },
+        )
+
+    if violations:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "ENTITLEMENT_VIOLATION",
+                "violations": violations,
+            },
+        )
 
 
 @router.post("/generate-plugin", response_model=GenerateResponse)
@@ -32,6 +63,7 @@ code_generator = CodeGeneratorService()
 async def generate_plugin(config: PluginConfig, request: Request, user: dict = Depends(_auth_dep)) -> GenerateResponse:
     """Generate a Minecraft plugin from block configuration."""
     logger.info("Generating plugin: %s", config.name)
+    _enforce_entitlements(config, user)
 
     # Tier limit checks when auth is enabled
     if user and settings.REQUIRE_AUTH:
@@ -67,6 +99,7 @@ async def generate_plugin(config: PluginConfig, request: Request, user: dict = D
 async def preview_code(config: PluginConfig, request: Request, user: dict = Depends(_auth_dep)) -> PreviewResponse:
     """Preview generated Java code without building."""
     logger.info("Previewing code for plugin: %s", config.name)
+    _enforce_entitlements(config, user)
 
     # Tier limit checks when auth is enabled
     if user and settings.REQUIRE_AUTH:
@@ -126,8 +159,33 @@ async def preview_code(config: PluginConfig, request: Request, user: dict = Depe
 @limiter.limit("60/minute")
 async def get_blocks(request: Request) -> BlocksResponse:
     """Retrieve available block definitions."""
-    blocks = block_definitions.get_available_blocks()
+    blocks = get_catalog_copy()
     return BlocksResponse(status="success", **blocks)
+
+
+@router.get("/entitlements", response_model=EntitlementsResponse)
+@limiter.limit("60/minute")
+async def get_entitlements(
+    request: Request,
+    paper_version: str = "1.21.1",
+    user: dict = Depends(_auth_dep),
+) -> EntitlementsResponse:
+    """Return resolved block + limits entitlements for the current user."""
+    default_tier = "free" if settings.REQUIRE_AUTH else "pro"
+    tier = (user or {}).get("subscription_tier", default_tier)
+    subscription_status = (user or {}).get("subscription_status")
+    cancel_at_period_end = bool((user or {}).get("cancel_at_period_end", False))
+    current_period_end = (user or {}).get("current_period_end")
+    all_blocks = get_all_blocks()
+    entitlements = resolve_entitlements(
+        tier=tier,
+        subscription_status=subscription_status,
+        cancel_at_period_end=cancel_at_period_end,
+        current_period_end=current_period_end,
+        paper_version=paper_version,
+        all_blocks=all_blocks,
+    )
+    return EntitlementsResponse(status="success", **entitlements)
 
 
 @router.get("/worlds", response_model=WorldsResponse)

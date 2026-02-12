@@ -17,7 +17,7 @@ import { validateBlocks, normalizeBlockDefinition } from './utils/blockSchema';
 import { validatePluginSettings } from './utils/pluginValidation';
 import { DEFAULT_BLOCKS, TEMPLATES } from './services/blockDefinitions';
 import { useBlocks } from './hooks/useBlocks';
-import { getFeatures, isBlockLocked, getBlockFeatureLabel, PREMIUM_BLOCKS } from './config/tierFeatures';
+import { getFeatures, isBlockLocked, getBlockFeatureLabel } from './config/tierFeatures';
 import './App.css';
 
 export default function App() {
@@ -41,8 +41,10 @@ export default function App() {
   const initialize = useAuthStore((s) => s.initialize);
   const user = useAuthStore((s) => s.user);
   const profile = useAuthStore((s) => s.profile);
+  const entitlements = useAuthStore((s) => s.entitlements);
   const authInitialized = useAuthStore((s) => s.initialized);
   const signOut = useAuthStore((s) => s.signOut);
+  const refreshEntitlements = useAuthStore((s) => s.refreshEntitlements);
 
   const landingUrl = import.meta.env.VITE_LANDING_URL || 'http://localhost:3000';
   const authEnabled = !!supabase;
@@ -93,6 +95,11 @@ export default function App() {
   useEffect(() => {
     initialize();
   }, [initialize]);
+
+  useEffect(() => {
+    if (!authEnabled || !authInitialized || !user) return;
+    refreshEntitlements(paperVersion);
+  }, [authEnabled, authInitialized, user, paperVersion, refreshEntitlements]);
 
   // First login experience: show editor overview tour before dashboard
   useEffect(() => {
@@ -197,6 +204,10 @@ export default function App() {
   );
 
   const blocksForMenus = availableBlocks || normalizedDefaults;
+  const lockedBlockIds = useMemo(
+    () => new Set(entitlements?.locked_block_ids || []),
+    [entitlements]
+  );
 
   const quickAddMap = useMemo(() => {
     const map = new Map();
@@ -215,6 +226,12 @@ export default function App() {
     if (!value) return;
     const definition = quickAddMap.get(value);
     if (!definition) return;
+    const t = authEnabled ? useAuthStore.getState().getTier() : 'pro';
+    if (isBlockLockedForUser(definition.id, t)) {
+      setUpgradeMessage(getUpgradeLabel(definition));
+      setQuickAddSelection('');
+      return;
+    }
 
     if (definition.type === 'event') {
       addBlockFromDefinition(definition);
@@ -240,6 +257,42 @@ export default function App() {
     setQuickAddSelection('');
   };
 
+  const isBlockLockedForUser = (blockId, tier) => {
+    if (entitlements?.locked_block_ids) {
+      return lockedBlockIds.has(blockId);
+    }
+    return isBlockLocked(blockId, tier);
+  };
+
+  const getUpgradeLabel = (block) => {
+    const reason = entitlements?.lock_reasons?.[block.id];
+    if (reason === 'LOCK_VERSION') {
+      return `${block.name} is not available for Paper ${paperVersion}`;
+    }
+    return `${getBlockFeatureLabel(block.id) || block.name} requires Premium`;
+  };
+
+  const extractUpgradeMessage = (err, fallback) => {
+    const detail = err?.response?.data?.detail;
+    if (typeof detail === 'string') return detail;
+    if (detail?.code === 'ENTITLEMENT_VIOLATION' && Array.isArray(detail.violations) && detail.violations.length > 0) {
+      const first = detail.violations[0];
+      if (first.reason === 'LOCK_VERSION') {
+        return `${first.block_id} is not available for Paper ${paperVersion}.`;
+      }
+      if (first.required_tier) {
+        return `${first.block_id} requires ${first.required_tier}.`;
+      }
+      return 'Your current tier cannot use one or more selected blocks.';
+    }
+    return fallback;
+  };
+
+  const isTemplateLockedForUser = (template, tier) => {
+    const children = template?.children || [];
+    return children.some((child) => child?.id && isBlockLockedForUser(child.id, tier));
+  };
+
   const handleTemplateSelect = (value) => {
     if (!value) return;
     const tpl = TEMPLATES.find((t) => t.id === value);
@@ -249,9 +302,11 @@ export default function App() {
       const allChildren = tpl.children || [];
       for (const child of allChildren) {
         const childId = child.id;
-        if (childId && isBlockLocked(childId, t)) {
-          const label = getBlockFeatureLabel(childId) || child.name;
-          setUpgradeMessage(`This recipe uses ${label}, which requires Premium.`);
+        if (childId && isBlockLockedForUser(childId, t)) {
+          const label = entitlements?.lock_reasons?.[childId] === 'LOCK_VERSION'
+            ? `${child.name} is unavailable for Paper ${paperVersion}`
+            : getBlockFeatureLabel(childId) || child.name;
+          setUpgradeMessage(`This recipe uses a locked block: ${label}.`);
           setTemplateSelection('');
           return;
         }
@@ -311,9 +366,8 @@ export default function App() {
       return false;
     }
     for (const block of blocks) {
-      if (isBlockLocked(block.id, t)) {
-        const label = getBlockFeatureLabel(block.id) || block.name;
-        setUpgradeMessage(`"${block.name}" requires Premium. ${label} is a paid feature.`);
+      if (isBlockLockedForUser(block.id, t)) {
+        setUpgradeMessage(getUpgradeLabel(block));
         return false;
       }
     }
@@ -347,7 +401,7 @@ export default function App() {
       const result = await apiService.previewCode(payload);
       setPreviewFiles(result.files);
     } catch (err) {
-      const msg = err.response?.data?.detail || err.message || 'Failed to preview code.';
+      const msg = extractUpgradeMessage(err, err.message || 'Failed to preview code.');
       if (err.response?.status === 403) {
         setUpgradeMessage(msg);
       } else {
@@ -430,7 +484,7 @@ export default function App() {
         }
       }
     } catch (err) {
-      const msg = err.response?.data?.detail || err.message || 'Failed to generate plugin.';
+      const msg = extractUpgradeMessage(err, err.message || 'Failed to generate plugin.');
       if (err.response?.status === 403) {
         setUpgradeMessage(msg);
       } else {
@@ -575,7 +629,15 @@ export default function App() {
 
   // Tier for current user (local dev = pro, no limits)
   const tier = authEnabled ? useAuthStore.getState().getTier() : 'pro';
-  const features = getFeatures(tier);
+  const features = entitlements?.limits
+    ? {
+        maxEvents: entitlements.limits.max_events,
+        maxActions: entitlements.limits.max_actions,
+        maxProjects: entitlements.limits.max_projects,
+        buildsPerPeriod: entitlements.limits.builds_per_period,
+        watermark: entitlements.limits.watermark,
+      }
+    : getFeatures(tier);
   const eventCount = blocks.filter((b) => b.type === 'event').length;
   const actionCount = blocks.filter((b) => b.type !== 'event').length;
 
@@ -727,11 +789,13 @@ export default function App() {
             templateSelection={templateSelection}
             onTemplateSelect={handleTemplateSelect}
             onTemplateSelectionChange={setTemplateSelection}
+            isTemplateLockedForUser={isTemplateLockedForUser}
             eventCount={eventCount}
             actionCount={actionCount}
             features={features}
             showLimits={authEnabled && !!user}
             tier={tier}
+            isBlockLockedForUser={isBlockLockedForUser}
             onUpgradeNeeded={setUpgradeMessage}
           />
         </aside>
