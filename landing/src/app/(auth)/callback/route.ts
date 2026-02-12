@@ -17,6 +17,12 @@ export async function GET(request: Request) {
       if (type === 'recovery') {
         return NextResponse.redirect(`${origin}/update-password`);
       }
+      if (type === 'signup') {
+        await supabase.auth.signOut();
+        return NextResponse.redirect(
+          `${origin}/login?message=${encodeURIComponent('Email verified. Please log in to continue.')}`
+        );
+      }
       return NextResponse.redirect(`${origin}${safePath}`);
     }
   }

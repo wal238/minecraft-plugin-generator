@@ -6,6 +6,7 @@ const usePluginStore = create((set) => ({
   mainPackage: 'com.example.myplugin',
   description: '',
   author: '',
+  paperVersion: '1.21.1',
 
   blocks: [],
   selectedBlockId: null,
@@ -22,8 +23,14 @@ const usePluginStore = create((set) => ({
   setMainPackage: (mainPackage) => set({ mainPackage }),
   setDescription: (description) => set({ description }),
   setAuthor: (author) => set({ author }),
+  setPaperVersion: (v) => set({ paperVersion: v }),
 
   addBlock: (block) => set((state) => ({ blocks: [...state.blocks, block] })),
+  setBlocks: (blocks) =>
+    set({
+      blocks: Array.isArray(blocks) ? blocks : [],
+      selectedBlockId: null,
+    }),
   updateBlock: (id, updates) =>
     set((state) => ({
       blocks: state.blocks.map((b) => (b.id === id ? { ...b, ...updates } : b))
@@ -84,6 +91,7 @@ const usePluginStore = create((set) => ({
       mainPackage: 'com.example.myplugin',
       description: '',
       author: '',
+      paperVersion: '1.21.1',
       blocks: [],
       selectedBlockId: null,
       loading: false,

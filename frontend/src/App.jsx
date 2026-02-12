@@ -26,6 +26,7 @@ export default function App() {
   const mainPackage = usePluginStore((s) => s.mainPackage);
   const description = usePluginStore((s) => s.description);
   const author = usePluginStore((s) => s.author);
+  const paperVersion = usePluginStore((s) => s.paperVersion);
   const blocks = usePluginStore((s) => s.blocks);
   const selectedBlockId = usePluginStore((s) => s.selectedBlockId);
   const loading = usePluginStore((s) => s.loading);
@@ -59,10 +60,18 @@ export default function App() {
   const [templateSelection, setTemplateSelection] = useState('');
   const [upgradeMessage, setUpgradeMessage] = useState(null);
   const [buildStatus, setBuildStatus] = useState(null);
+  const [showSaveProjectModal, setShowSaveProjectModal] = useState(false);
+  const [newProjectName, setNewProjectName] = useState('');
+  const [savingNewProject, setSavingNewProject] = useState(false);
+  const [theme, setTheme] = useState(() => {
+    try { return localStorage.getItem('mpb-theme') || 'dark'; } catch { return 'dark'; }
+  });
   const tourStartRef = useRef(null);
+  const postLoginHandledRef = useRef(false);
 
   const FAVORITES_KEY = 'mpb-favorites';
   const RECENTS_KEY = 'mpb-recents';
+  const TOUR_COMPLETED_KEY = 'mpb-tour-completed';
 
   const { addBlockFromDefinition, addChildFromDefinition, addTemplate } = useBlocks();
 
@@ -75,14 +84,44 @@ export default function App() {
   const hasSettingsErrors = Object.keys(settingsErrors).length > 0;
 
   useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    try { localStorage.setItem('mpb-theme', theme); } catch {}
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
+
+  useEffect(() => {
     initialize();
   }, [initialize]);
 
-  // Switch to dashboard when authenticated user is detected
+  // First login experience: show editor overview tour before dashboard
   useEffect(() => {
-    if (authEnabled && authInitialized && user) {
-      setCurrentView('dashboard');
+    if (!authEnabled || !authInitialized) return;
+
+    if (!user) {
+      postLoginHandledRef.current = false;
+      return;
     }
+
+    if (postLoginHandledRef.current) return;
+    postLoginHandledRef.current = true;
+
+    let hasCompletedTour = false;
+    try {
+      hasCompletedTour = localStorage.getItem(TOUR_COMPLETED_KEY) === 'true';
+    } catch {
+      hasCompletedTour = false;
+    }
+
+    if (hasCompletedTour) {
+      setCurrentView('dashboard');
+      return;
+    }
+
+    setCurrentView('editor');
+    window.setTimeout(() => {
+      tourStartRef.current?.();
+    }, 700);
   }, [authEnabled, authInitialized, user]);
 
   useEffect(() => {
@@ -252,6 +291,7 @@ export default function App() {
       main_package: mainPackage,
       description,
       author,
+      paper_version: paperVersion,
       blocks: payloadBlocks
     };
   };
@@ -411,6 +451,7 @@ export default function App() {
       if (config.description) usePluginStore.getState().setDescription(config.description);
       if (config.author) usePluginStore.getState().setAuthor(config.author);
       if (config.blocks) usePluginStore.getState().setBlocks(config.blocks);
+      if (config.paperVersion) usePluginStore.getState().setPaperVersion(config.paperVersion);
     }
     setCurrentProjectId(project?.id || null);
     setCurrentProjectVersion(project?.version || null);
@@ -424,29 +465,65 @@ export default function App() {
     setCurrentView('editor');
   };
 
-  const handleSaveProject = async () => {
+  const getProjectConfig = () => {
     const state = usePluginStore.getState();
-    const config = {
+    return {
       name: state.name,
       version: state.version,
       mainPackage: state.mainPackage,
       description: state.description,
       author: state.author,
+      paperVersion: state.paperVersion,
       blocks: state.blocks,
     };
+  };
 
+  const openSaveProjectModal = () => {
+    const state = usePluginStore.getState();
+    setError(null);
+    setNewProjectName((state.name || '').trim() || 'My Plugin');
+    setShowSaveProjectModal(true);
+  };
+
+  const closeSaveProjectModal = () => {
+    if (savingNewProject) return;
+    setShowSaveProjectModal(false);
+  };
+
+  const handleCreateProject = async () => {
+    const projectName = newProjectName.trim();
+    if (!projectName) {
+      setError('Project name is required.');
+      return;
+    }
+
+    setError(null);
+    setSavingNewProject(true);
+    try {
+      const created = await projectService.createProject(projectName, getProjectConfig());
+      setCurrentProjectId(created.id);
+      setCurrentProjectVersion(created.version);
+      setShowSaveProjectModal(false);
+      setSuccessMessage('Project created.');
+    } catch (err) {
+      if (err.message === 'FREE_TIER_LIMIT') {
+        setUpgradeMessage('You have reached the free tier project limit. Upgrade to save more projects.');
+      } else {
+        setError(err.message || 'Failed to save project.');
+      }
+    } finally {
+      setSavingNewProject(false);
+    }
+  };
+
+  const handleSaveProject = async () => {
     try {
       if (currentProjectId) {
-        const updated = await projectService.saveProject(currentProjectId, config, currentProjectVersion);
+        const updated = await projectService.saveProject(currentProjectId, getProjectConfig(), currentProjectVersion);
         setCurrentProjectVersion(updated.version);
         setSuccessMessage('Project saved.');
       } else {
-        const projectName = window.prompt('Project name:', state.name || 'My Plugin');
-        if (!projectName) return;
-        const created = await projectService.createProject(projectName, config);
-        setCurrentProjectId(created.id);
-        setCurrentProjectVersion(created.version);
-        setSuccessMessage('Project created.');
+        openSaveProjectModal();
       }
     } catch (err) {
       if (err.message === 'FREE_TIER_LIMIT') {
@@ -465,7 +542,7 @@ export default function App() {
           <div className="auth-gate-logo">Minecraft Plugin Builder</div>
           <h1 className="auth-gate-title">Sign in to get started</h1>
           <p className="auth-gate-subtitle">
-            Create a free account to start building Minecraft plugins
+            Create a free account, verify your email, then sign in to start building Minecraft plugins
           </p>
           <div className="auth-gate-buttons">
             <a
@@ -524,7 +601,7 @@ export default function App() {
       <header className="header">
         <div className="header-title">Minecraft Plugin Builder</div>
         {authEnabled && user && (
-          <>
+          <div className="header-nav">
             <button
               type="button"
               className="header-btn"
@@ -541,162 +618,92 @@ export default function App() {
             >
               Save
             </button>
-          </>
-        )}
-        <button
-          type="button"
-          className="header-help-btn"
-          onClick={() => tourStartRef.current?.()}
-          title="Show guided tour"
-          aria-label="Help"
-        >
-          ?
-        </button>
-        <div className="header-controls" data-tour="header-toolbar">
-          <input
-            type="text"
-            className="header-search"
-            placeholder="Search blocks and templates..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            data-tour="header-search"
-          />
-          <label className="header-toggle">
-            <input
-              type="checkbox"
-              checked={favoritesOnly}
-              onChange={(e) => setFavoritesOnly(e.target.checked)}
-            />
-            Favorites only
-          </label>
-          <button
-            type="button"
-            className="header-btn"
-            onClick={clearRecents}
-            disabled={recents.length === 0}
-          >
-            Clear Recents
-          </button>
-          <select
-            className="header-select header-select-compact"
-            value={quickAddSelection}
-            data-tour="header-quick-add"
-            onChange={(e) => {
-              const value = e.target.value;
-              setQuickAddSelection(value);
-              handleQuickAdd(value);
-            }}
-          >
-            <option value="">Quick Add...</option>
-            <optgroup label="Events">
-              {blocksForMenus.events.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </optgroup>
-            <optgroup label="Actions">
-              {blocksForMenus.actions.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </optgroup>
-            <optgroup label="Custom">
-              {blocksForMenus.custom_options.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </optgroup>
-          </select>
-          <select
-            className="header-select"
-            value={templateSelection}
-            onChange={(e) => {
-              const value = e.target.value;
-              setTemplateSelection(value);
-              handleTemplateSelect(value);
-            }}
-          >
-            <option value="">Recipes...</option>
-            {TEMPLATES.map((tpl) => (
-              <option key={tpl.id} value={tpl.id}>
-                {tpl.name}
-              </option>
-            ))}
-          </select>
-          {authEnabled && user && (
-            <span className="block-limit-counter">
-              {eventCount}/{features.maxEvents === -1 ? '\u221e' : features.maxEvents} events
-              {' \u00b7 '}
-              {actionCount}/{features.maxActions === -1 ? '\u221e' : features.maxActions} actions
-            </span>
-          )}
-          <span data-tour="preview-generate" style={{ display: 'contents' }}>
-            <button
-              className="preview-btn"
-              onClick={handlePreview}
-              disabled={loading || previewLoading || hasSettingsErrors}
-              title={hasSettingsErrors ? 'Fix plugin settings to continue.' : undefined}
-            >
-              {previewLoading ? 'Loading...' : 'Preview'}
-            </button>
-            <button
-              className="generate-btn"
-              onClick={handleGenerate}
-              disabled={loading || previewLoading || hasSettingsErrors}
-              title={hasSettingsErrors ? 'Fix plugin settings to continue.' : undefined}
-            >
-              {loading
-                ? buildStatus === 'running' ? 'Building...'
-                : buildStatus === 'queued' ? 'Queued...'
-                : 'Generating...'
-                : 'Generate'}
-            </button>
-          </span>
-          {(loading || previewLoading) && <div className="spinner" />}
-        </div>
-        {authEnabled && (
-          <div className="header-auth">
-            {authInitialized && !user && (
-              <a
-                href={`${landingUrl}/login?redirect=${encodeURIComponent(window.location.origin)}`}
-                className="header-btn header-login-btn"
-              >
-                Sign In
-              </a>
-            )}
-            {user && (
-              <>
-                {profile && (
-                  <span className={`build-counter${
-                    profile.builds_used_this_period >= (
-                      profile.subscription_tier === 'pro' ? 20
-                      : profile.subscription_tier === 'premium' ? 5
-                      : 1
-                    ) ? ' at-limit' : ''
-                  }`}>
-                    {profile.builds_used_this_period}/
-                    {profile.subscription_tier === 'pro' ? 20
-                      : profile.subscription_tier === 'premium' ? 5
-                      : 1} builds
-                  </span>
-                )}
-                <span className="header-user-email" title={user.email}>
-                  {user.email}
-                </span>
-                <button
-                  type="button"
-                  className="header-btn header-signout-btn"
-                  onClick={signOut}
-                >
-                  Sign Out
-                </button>
-              </>
-            )}
           </div>
         )}
+        <div className="header-actions" data-tour="preview-generate">
+          <button
+            className="preview-btn"
+            onClick={handlePreview}
+            disabled={loading || previewLoading || hasSettingsErrors}
+            title={hasSettingsErrors ? 'Fix plugin settings to continue.' : undefined}
+          >
+            {previewLoading ? 'Loading...' : 'Preview'}
+          </button>
+          <button
+            className="generate-btn"
+            onClick={handleGenerate}
+            disabled={loading || previewLoading || hasSettingsErrors}
+            title={hasSettingsErrors ? 'Fix plugin settings to continue.' : undefined}
+          >
+            {loading
+              ? buildStatus === 'running' ? 'Building...'
+              : buildStatus === 'queued' ? 'Queued...'
+              : 'Generating...'
+              : 'Generate'}
+          </button>
+          {(loading || previewLoading) && <div className="spinner" />}
+        </div>
+        <div className="header-divider" />
+        <div className="header-right">
+          <button
+            type="button"
+            className="header-theme-btn"
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? '\u2600' : '\u263D'}
+          </button>
+          <button
+            type="button"
+            className="header-help-btn"
+            onClick={() => tourStartRef.current?.()}
+            title="Show guided tour"
+            aria-label="Help"
+          >
+            ?
+          </button>
+          {authEnabled && (
+            <>
+              {authInitialized && !user && (
+                <a
+                  href={`${landingUrl}/login?redirect=${encodeURIComponent(window.location.origin)}`}
+                  className="header-btn header-login-btn"
+                >
+                  Sign In
+                </a>
+              )}
+              {user && (
+                <>
+                  {profile && (
+                    <span className={`build-counter${
+                      profile.builds_used_this_period >= (
+                        profile.subscription_tier === 'pro' ? 20
+                        : profile.subscription_tier === 'premium' ? 5
+                        : 1
+                      ) ? ' at-limit' : ''
+                    }`}>
+                      {profile.builds_used_this_period}/
+                      {profile.subscription_tier === 'pro' ? 20
+                        : profile.subscription_tier === 'premium' ? 5
+                        : 1} builds
+                    </span>
+                  )}
+                  <span className="header-user-email" title={user.email}>
+                    {user.email}
+                  </span>
+                  <button
+                    type="button"
+                    className="header-btn header-signout-btn"
+                    onClick={signOut}
+                  >
+                    Sign Out
+                  </button>
+                </>
+              )}
+            </>
+          )}
+        </div>
       </header>
       <div className="content">
         <aside className="sidebar">
@@ -705,11 +712,25 @@ export default function App() {
           </div>
           <BlockPalette
             search={search}
+            onSearchChange={setSearch}
             favorites={favorites}
             recents={recents}
             favoritesOnly={favoritesOnly}
+            onFavoritesOnlyChange={setFavoritesOnly}
+            onClearRecents={clearRecents}
             onToggleFavorite={toggleFavorite}
             onAddRecent={addRecent}
+            quickAddSelection={quickAddSelection}
+            onQuickAdd={handleQuickAdd}
+            onQuickAddSelectionChange={setQuickAddSelection}
+            blocksForMenus={blocksForMenus}
+            templateSelection={templateSelection}
+            onTemplateSelect={handleTemplateSelect}
+            onTemplateSelectionChange={setTemplateSelection}
+            eventCount={eventCount}
+            actionCount={actionCount}
+            features={features}
+            showLimits={authEnabled && !!user}
             tier={tier}
             onUpgradeNeeded={setUpgradeMessage}
           />
@@ -733,6 +754,64 @@ export default function App() {
           files={previewFiles}
           onClose={() => setPreviewFiles(null)}
         />
+      )}
+
+      {showSaveProjectModal && (
+        <div className="modal-overlay" onClick={closeSaveProjectModal}>
+          <div className="project-save-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="project-save-modal-header">
+              <h2>Create Project</h2>
+              <button
+                type="button"
+                className="modal-close"
+                onClick={closeSaveProjectModal}
+                disabled={savingNewProject}
+                aria-label="Close create project dialog"
+              >
+                &times;
+              </button>
+            </div>
+            <form
+              className="project-save-modal-body"
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleCreateProject();
+              }}
+            >
+              <label className="form-label" htmlFor="project-name-input">
+                Project Name
+              </label>
+              <input
+                id="project-name-input"
+                className="form-input project-save-input"
+                value={newProjectName}
+                onChange={(e) => setNewProjectName(e.target.value)}
+                maxLength={120}
+                autoFocus
+                disabled={savingNewProject}
+                placeholder="My Plugin"
+              />
+              <p className="project-save-hint">Give this project a name so you can find it later.</p>
+              <div className="project-save-actions">
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={closeSaveProjectModal}
+                  disabled={savingNewProject}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="generate-btn"
+                  disabled={savingNewProject}
+                >
+                  {savingNewProject ? 'Saving...' : 'Create Project'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       <WelcomeTour onRequestStart={(fn) => { tourStartRef.current = fn; }} />

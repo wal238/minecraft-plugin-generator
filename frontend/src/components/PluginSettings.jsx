@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import usePluginStore from '../store/usePluginStore';
 import { InfoTooltip } from './Tooltip';
 import { suggestMainPackage, validatePluginSettings } from '../utils/pluginValidation';
+import { PAPER_VERSION_OPTIONS } from '../data/dropdownOptions';
 
 /** Help text for each field */
 const FIELD_HELP = {
@@ -23,6 +24,8 @@ export default function PluginSettings() {
   const setMainPackage = usePluginStore((s) => s.setMainPackage);
   const setDescription = usePluginStore((s) => s.setDescription);
   const setAuthor = usePluginStore((s) => s.setAuthor);
+  const paperVersion = usePluginStore((s) => s.paperVersion);
+  const setPaperVersion = usePluginStore((s) => s.setPaperVersion);
   const [mainPackageTouched, setMainPackageTouched] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
@@ -105,6 +108,25 @@ export default function PluginSettings() {
         ) : (
           <span className="form-hint">Format: major.minor.patch (e.g., 1.0.0)</span>
         )}
+      </div>
+
+      <div className="form-group">
+        <label className="form-label" htmlFor="plugin-paper-version">
+          Paper API Version
+          <InfoTooltip text="The Minecraft server version your plugin targets. This affects the generated Maven dependency and Java version." />
+        </label>
+        <select
+          id="plugin-paper-version"
+          className="form-input"
+          value={paperVersion}
+          onChange={(e) => setPaperVersion(e.target.value)}
+        >
+          {PAPER_VERSION_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="form-group">

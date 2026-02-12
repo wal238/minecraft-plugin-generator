@@ -225,6 +225,144 @@ export const DEFAULT_BLOCKS = {
       properties: {},
       children: []
     },
+    // Inventory Events
+    {
+      type: 'event',
+      id: 'inventory-click',
+      name: 'InventoryClickEvent',
+      description: 'Triggered when a player clicks in any inventory',
+      color: '#1abc9c',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
+      id: 'inventory-open',
+      name: 'InventoryOpenEvent',
+      description: 'Triggered when a player opens an inventory',
+      color: '#1abc9c',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
+      id: 'inventory-close',
+      name: 'InventoryCloseEvent',
+      description: 'Triggered when a player closes an inventory',
+      color: '#1abc9c',
+      properties: {},
+      children: []
+    },
+    // More Player Events
+    {
+      type: 'event',
+      id: 'player-fish',
+      name: 'PlayerFishEvent',
+      description: 'Triggered when a player catches a fish',
+      color: '#3498db',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
+      id: 'player-bed-enter',
+      name: 'PlayerBedEnterEvent',
+      description: 'Triggered when a player enters a bed',
+      color: '#3498db',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
+      id: 'player-bed-leave',
+      name: 'PlayerBedLeaveEvent',
+      description: 'Triggered when a player leaves a bed',
+      color: '#3498db',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
+      id: 'player-changed-world',
+      name: 'PlayerChangedWorldEvent',
+      description: 'Triggered when a player switches world',
+      color: '#3498db',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
+      id: 'player-item-consume',
+      name: 'PlayerItemConsumeEvent',
+      description: 'Triggered when a player eats or drinks',
+      color: '#3498db',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
+      id: 'player-bucket-fill',
+      name: 'PlayerBucketFillEvent',
+      description: 'Triggered when a player fills a bucket',
+      color: '#3498db',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
+      id: 'player-bucket-empty',
+      name: 'PlayerBucketEmptyEvent',
+      description: 'Triggered when a player empties a bucket',
+      color: '#3498db',
+      properties: {},
+      children: []
+    },
+    // More Entity Events
+    {
+      type: 'event',
+      id: 'projectile-hit',
+      name: 'ProjectileHitEvent',
+      description: 'Triggered when a projectile hits something',
+      color: '#e74c3c',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
+      id: 'entity-tame',
+      name: 'EntityTameEvent',
+      description: 'Triggered when a player tames an animal',
+      color: '#e74c3c',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
+      id: 'entity-explode',
+      name: 'EntityExplodeEvent',
+      description: 'Triggered when an entity explodes',
+      color: '#e74c3c',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
+      id: 'food-level-change',
+      name: 'FoodLevelChangeEvent',
+      description: 'Triggered when hunger level changes',
+      color: '#e74c3c',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'event',
+      id: 'sign-change',
+      name: 'SignChangeEvent',
+      description: 'Triggered when a player edits a sign',
+      color: '#e67e22',
+      properties: {},
+      children: []
+    },
     {
       type: 'event',
       id: 'on-gui-click',
@@ -833,6 +971,160 @@ export const DEFAULT_BLOCKS = {
       properties: { path: 'players.%player%.kills', messageFormat: 'Your kills: %value%' },
       children: []
     },
+    // New Player Actions
+    {
+      type: 'action',
+      id: 'heal-player',
+      name: 'HealPlayer',
+      description: 'Restore health to the player',
+      color: '#27ae60',
+      properties: { amount: '5' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'feed-player',
+      name: 'FeedPlayer',
+      description: 'Restore hunger to the player',
+      color: '#27ae60',
+      properties: { amount: '5' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'set-max-health',
+      name: 'SetMaxHealth',
+      description: 'Set player max health',
+      color: '#27ae60',
+      properties: { amount: '20' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'set-armor',
+      name: 'SetArmor',
+      description: 'Set player armor pieces',
+      color: '#27ae60',
+      properties: { helmet: '', chestplate: '', leggings: '', boots: '' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'launch-projectile',
+      name: 'LaunchProjectile',
+      description: 'Launch a projectile from the player',
+      color: '#27ae60',
+      properties: { projectileType: 'SNOWBALL', speed: '1.5' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'spawn-firework',
+      name: 'SpawnFirework',
+      description: 'Spawn a firework at the player',
+      color: '#9b59b6',
+      properties: { color: 'RED', fireworkType: 'BALL', power: '1' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'set-spawn-location',
+      name: 'SetSpawnLocation',
+      description: 'Set player spawn point',
+      color: '#27ae60',
+      properties: { x: '', y: '', z: '' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'close-inventory',
+      name: 'CloseInventory',
+      description: 'Close the player inventory',
+      color: '#1abc9c',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'send-tab-header-footer',
+      name: 'SendTabHeaderFooter',
+      description: 'Set player list header and footer',
+      color: '#27ae60',
+      properties: { header: '', footer: '' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'set-world-border',
+      name: 'SetWorldBorder',
+      description: 'Set world border size and center',
+      color: '#9b59b6',
+      properties: { size: '1000', centerX: '0', centerZ: '0' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'spawn-falling-block',
+      name: 'SpawnFallingBlock',
+      description: 'Spawn a falling block above the player',
+      color: '#e67e22',
+      properties: { blockType: 'SAND' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'open-book',
+      name: 'OpenBook',
+      description: 'Open a virtual book for the player',
+      color: '#27ae60',
+      properties: { title: 'My Book', author: 'Server', content: '' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'set-resource-pack',
+      name: 'SetResourcePack',
+      description: 'Send a resource pack to the player',
+      color: '#9b59b6',
+      properties: { url: '' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'ride-entity',
+      name: 'RideEntity',
+      description: 'Make player ride the target entity',
+      color: '#e74c3c',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'set-walk-speed',
+      name: 'SetWalkSpeed',
+      description: 'Set player walking speed',
+      color: '#27ae60',
+      properties: { speed: '0.2' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'set-fly-speed',
+      name: 'SetFlySpeed',
+      description: 'Set player flying speed',
+      color: '#27ae60',
+      properties: { speed: '0.1' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'add-shaped-recipe',
+      name: 'AddShapedRecipe',
+      description: 'Register a shaped crafting recipe',
+      color: '#795548',
+      properties: { recipeKey: 'my_recipe', resultItem: 'DIAMOND', resultAmount: '1', shape: 'AAA,BBB,CCC', ingredients: 'A:DIAMOND,B:GOLD_INGOT,C:IRON_INGOT' },
+      children: []
+    },
     // Custom Recipes
     {
       type: 'action',
@@ -994,6 +1286,114 @@ export const DEFAULT_BLOCKS = {
       description: 'Only run following actions if player experience level is above a value',
       color: '#f39c12',
       properties: { level: '10' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'is-holding-item',
+      name: 'IsHoldingItem',
+      description: 'Only run following actions if player holds a specific item',
+      color: '#f39c12',
+      properties: { itemType: 'DIAMOND_SWORD' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'is-raining',
+      name: 'IsRaining',
+      description: 'Only run following actions if it is raining',
+      color: '#f39c12',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'is-thundering',
+      name: 'IsThundering',
+      description: 'Only run following actions if it is thundering',
+      color: '#f39c12',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'has-potion-effect',
+      name: 'HasPotionEffect',
+      description: 'Only run following actions if player has a potion effect',
+      color: '#f39c12',
+      properties: { effectType: 'SPEED' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'is-on-ground',
+      name: 'IsOnGround',
+      description: 'Only run following actions if player is on ground',
+      color: '#f39c12',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'is-in-water',
+      name: 'IsInWater',
+      description: 'Only run following actions if player is in water',
+      color: '#f39c12',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'random-chance',
+      name: 'RandomChance',
+      description: 'Only run following actions with a random chance (0-100%)',
+      color: '#f39c12',
+      properties: { chance: '50' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'block-is-type',
+      name: 'BlockIsType',
+      description: 'Only run following actions if event block is a specific type',
+      color: '#f39c12',
+      properties: { blockType: 'DIAMOND_ORE' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'time-is-day',
+      name: 'TimeIsDay',
+      description: 'Only run following actions during daytime',
+      color: '#f39c12',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'time-is-night',
+      name: 'TimeIsNight',
+      description: 'Only run following actions during nighttime',
+      color: '#f39c12',
+      properties: {},
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'is-in-biome',
+      name: 'IsInBiome',
+      description: 'Only run following actions if player is in a specific biome',
+      color: '#f39c12',
+      properties: { biome: 'PLAINS' },
+      children: []
+    },
+    {
+      type: 'action',
+      id: 'has-experience',
+      name: 'HasExperience',
+      description: 'Only run following actions if player has enough XP',
+      color: '#f39c12',
+      properties: { amount: '100' },
       children: []
     },
   ],

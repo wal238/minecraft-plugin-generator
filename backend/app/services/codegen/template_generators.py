@@ -2,11 +2,13 @@
 
 from app.models.block import Block, BlockType
 from app.models.plugin_config import PluginConfig
+from app.services.codegen.version_config import get_version_config
 from app.utils.validators import sanitize_java_string
 
 
 def generate_plugin_yml(config: PluginConfig) -> str:
     """Generate the plugin.yml manifest file."""
+    ver = get_version_config(config.paper_version)
     yml = (
         f"name: {config.main_class_name}\n"
         f"version: {config.version}\n"
@@ -14,6 +16,7 @@ def generate_plugin_yml(config: PluginConfig) -> str:
         f"description: {config.description}\n"
         f"authors:\n"
         f"  - {config.author}\n"
+        f"api-version: {ver['api_version']}\n"
     )
 
     command_blocks = [
@@ -48,6 +51,7 @@ def generate_plugin_yml(config: PluginConfig) -> str:
 
 def generate_pom_xml(config: PluginConfig) -> str:
     """Generate Maven pom.xml with Paper API dependency."""
+    ver = get_version_config(config.paper_version)
     parts = config.main_package.split(".")
     group_id = ".".join(parts[:2]) if len(parts) >= 2 else config.main_package
 
@@ -65,8 +69,8 @@ def generate_pom_xml(config: PluginConfig) -> str:
     <description>{config.description}</description>
 
     <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
+        <maven.compiler.source>{ver["java_version"]}</maven.compiler.source>
+        <maven.compiler.target>{ver["java_version"]}</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -81,7 +85,7 @@ def generate_pom_xml(config: PluginConfig) -> str:
         <dependency>
             <groupId>io.papermc.paper</groupId>
             <artifactId>paper-api</artifactId>
-            <version>1.21.1-R0.1-SNAPSHOT</version>
+            <version>{ver["maven_version"]}</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

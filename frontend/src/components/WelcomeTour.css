@@ -35,13 +35,13 @@
 .tour-tooltip {
   position: fixed;
   z-index: 99995;
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(9, 20, 33, 0.28), 0 2px 8px rgba(9, 20, 33, 0.12);
+  background: var(--bg-tooltip);
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.5);
   width: 360px;
   max-width: calc(100vw - 32px);
   animation: tourTooltipIn 0.25s ease-out;
-  font-family: 'Montserrat', 'Nunito Sans', 'Segoe UI', sans-serif;
+  font-family: var(--font-body);
 }
 
 .tour-tooltip-center {
@@ -80,7 +80,7 @@
   position: absolute;
   width: 12px;
   height: 12px;
-  background: #ffffff;
+  background: var(--bg-tooltip);
   transform: rotate(45deg);
 }
 
@@ -127,16 +127,16 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  border-radius: 8px;
-  background: #edf2f8;
-  color: #1f78e6;
+  background: var(--bg-surface-soft);
+  color: var(--mc-orange);
 }
 
 .tour-tooltip-title {
   margin: 0;
-  font-size: 16px;
+  font-size: 10px;
   font-weight: 700;
-  color: #1a2433;
+  color: var(--text-strong);
+  font-family: var(--font-pixel);
   flex: 1;
 }
 
@@ -145,16 +145,15 @@
   border: none;
   font-size: 22px;
   cursor: pointer;
-  color: #5d6a7d;
+  color: var(--text-muted);
   padding: 0 4px;
   line-height: 1;
-  border-radius: 4px;
   transition: background 0.15s, color 0.15s;
 }
 
 .tour-tooltip-close:hover {
-  color: #d64545;
-  background: rgba(214, 69, 69, 0.08);
+  color: var(--mc-red);
+  background: rgba(244, 67, 54, 0.1);
 }
 
 /* === Body === */
@@ -163,7 +162,7 @@
   margin: 0;
   font-size: 14px;
   line-height: 1.6;
-  color: #344155;
+  color: var(--text-body);
 }
 
 /* === Footer === */
@@ -172,7 +171,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 20px;
-  border-top: 1px solid #dde5ec;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
   gap: 12px;
 }
 
@@ -186,23 +185,23 @@
 .tour-tooltip-dot {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
-  background: #c8d3de;
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, 0.15);
   transition: background 0.2s, transform 0.2s;
 }
 
 .tour-tooltip-dot.active {
-  background: #1f78e6;
+  background: var(--mc-orange);
   transform: scale(1.25);
 }
 
 .tour-tooltip-dot.completed {
-  background: #1f9d63;
+  background: var(--mc-green);
 }
 
 .tour-tooltip-counter {
   font-size: 12px;
-  color: #5d6a7d;
+  color: var(--text-muted);
   margin-left: 6px;
 }
 
@@ -214,34 +213,41 @@
 
 .tour-btn {
   padding: 8px 18px;
-  border-radius: 6px;
-  font-size: 13px;
+  font-size: 8px;
   font-weight: 600;
   cursor: pointer;
   border: none;
-  transition: background 0.15s, box-shadow 0.15s;
-  font-family: inherit;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  font-family: var(--font-pixel);
+  text-transform: uppercase;
 }
 
 .tour-btn-primary {
-  background: linear-gradient(135deg, #1f78e6, #1a65c7);
+  background: var(--mc-orange);
   color: white;
-  box-shadow: 0 2px 8px rgba(31, 120, 230, 0.3);
+  box-shadow: 3px 3px 0 var(--mc-orange-dark);
 }
 
 .tour-btn-primary:hover {
-  background: linear-gradient(135deg, #1a65c7, #1556b0);
-  box-shadow: 0 4px 12px rgba(31, 120, 230, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 4px 4px 0 var(--mc-orange-dark);
+}
+
+.tour-btn-primary:active {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 var(--mc-orange-dark);
 }
 
 .tour-btn-secondary {
-  background: #f2f6fa;
-  color: #344155;
-  border: 1px solid #c8d3de;
+  background: var(--bg-surface-soft);
+  color: var(--text-body);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.3);
 }
 
 .tour-btn-secondary:hover {
-  background: #e6eef6;
+  transform: translateY(-1px);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.3);
 }
 
 /* === Don't show again === */
@@ -251,11 +257,31 @@
   gap: 6px;
   padding: 8px 20px 14px;
   font-size: 12px;
-  color: #7a889c;
+  color: var(--text-subtle);
   cursor: pointer;
   user-select: none;
 }
 
 .tour-tooltip-dismiss input[type="checkbox"] {
   cursor: pointer;
+}
+
+/* Light mode overrides */
+[data-theme="light"] .tour-tooltip {
+  background: var(--bg-tooltip);
+  border-color: var(--border-color);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+}
+
+[data-theme="light"] .tour-tooltip-arrow {
+  background: var(--bg-tooltip);
+}
+
+[data-theme="light"] .tour-btn-secondary {
+  background: var(--bg-surface-soft);
+  border-color: var(--border-color);
+}
+
+[data-theme="light"] .tour-spotlight {
+  box-shadow: 0 0 0 9999px rgba(10, 18, 30, 0.45);
 }
