@@ -6,6 +6,19 @@ import { getTierForPriceId } from '@/lib/stripe/plans';
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET!;
 const WEBHOOK_TIMESTAMP_TOLERANCE_SEC = 300;
 
+function readUnixSeconds(value: unknown): number | null {
+  return typeof value === 'number' ? value : null;
+}
+
+function isoFromUnix(value: unknown): string | null {
+  const ts = readUnixSeconds(value);
+  return ts ? new Date(ts * 1000).toISOString() : null;
+}
+
+function subscriptionRecord(subscription: Stripe.Subscription): Record<string, unknown> {
+  return subscription as unknown as Record<string, unknown>;
+}
+
 export async function POST(req: Request) {
   // 1. Read RAW body for signature verification
   const body = await req.text();
@@ -70,7 +83,7 @@ export async function POST(req: Request) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+        const subscription = await stripe.subscriptions.retrieve(session.subscription as string) as unknown as Stripe.Subscription;
         const priceId = subscription.items.data[0].price.id;
         const tier = getTierForPriceId(priceId) ?? 'free';
 
@@ -90,8 +103,9 @@ export async function POST(req: Request) {
           stripe_subscription_id: subscription.id,
           subscription_tier: tier,
           subscription_status: subscription.status,
-          current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-          current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+          current_period_start: isoFromUnix(subscriptionRecord(subscription).current_period_start),
+          current_period_end: isoFromUnix(subscriptionRecord(subscription).current_period_end),
+          cancel_at_period_end: Boolean(subscriptionRecord(subscription).cancel_at_period_end),
           builds_used_this_period: 0,
         }).eq('id', userId);
         break;
@@ -109,7 +123,8 @@ export async function POST(req: Request) {
           .eq('stripe_customer_id', customerId)
           .single();
 
-        const newPeriodStart = new Date(subscription.current_period_start * 1000);
+        const rawPeriodStart = readUnixSeconds(subscriptionRecord(subscription).current_period_start) ?? 0;
+        const newPeriodStart = new Date(rawPeriodStart * 1000);
         const isNewPeriod = !profile?.current_period_start ||
           newPeriodStart > new Date(profile.current_period_start);
 
@@ -117,7 +132,8 @@ export async function POST(req: Request) {
           subscription_tier: tier,
           subscription_status: subscription.status,
           current_period_start: newPeriodStart.toISOString(),
-          current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+          current_period_end: isoFromUnix(subscriptionRecord(subscription).current_period_end),
+          cancel_at_period_end: Boolean(subscriptionRecord(subscription).cancel_at_period_end),
           ...(isNewPeriod ? { builds_used_this_period: 0 } : {}),
         }).eq('stripe_customer_id', customerId);
         break;
@@ -131,6 +147,7 @@ export async function POST(req: Request) {
           stripe_subscription_id: null,
           current_period_start: null,
           current_period_end: null,
+          cancel_at_period_end: false,
           builds_used_this_period: 0,
         }).eq('stripe_customer_id', subscription.customer as string);
         break;
@@ -146,12 +163,15 @@ export async function POST(req: Request) {
 
       case 'invoice.paid': {
         const invoice = event.data.object as Stripe.Invoice;
-        if (invoice.subscription) {
-          const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
+        const invoiceRecord = invoice as unknown as { subscription?: string | null };
+        const subscriptionId = invoiceRecord.subscription || undefined;
+        if (subscriptionId) {
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId) as unknown as Stripe.Subscription;
           await supabaseAdmin.from('profiles').update({
             subscription_status: subscription.status,
-            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            current_period_start: isoFromUnix(subscriptionRecord(subscription).current_period_start),
+            current_period_end: isoFromUnix(subscriptionRecord(subscription).current_period_end),
+            cancel_at_period_end: Boolean(subscriptionRecord(subscription).cancel_at_period_end),
           }).eq('stripe_customer_id', invoice.customer as string);
         }
         break;

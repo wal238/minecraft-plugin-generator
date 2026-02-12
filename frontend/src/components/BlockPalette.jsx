@@ -26,11 +26,13 @@ export default function BlockPalette({
   templateSelection,
   onTemplateSelect,
   onTemplateSelectionChange,
+  isTemplateLockedForUser,
   eventCount,
   actionCount,
   features,
   showLimits,
   tier = 'pro',
+  isBlockLockedForUser,
   onUpgradeNeeded,
 }) {
   const availableBlocks = usePluginStore((state) => state.availableBlocks);
@@ -85,9 +87,15 @@ export default function BlockPalette({
     return map;
   }, [blocks.actions, blocks.custom_options, blocks.events]);
 
+  const isLocked = useCallback(
+    (blockId) => (isBlockLockedForUser ? isBlockLockedForUser(blockId, tier) : isBlockLocked(blockId, tier)),
+    [isBlockLockedForUser, tier]
+  );
+
   const onDragStart = useCallback(
     (e, block) => {
-      if (isBlockLocked(block.id, tier)) {
+      const locked = isLocked(block.id);
+      if (locked) {
         e.preventDefault();
         const label = getBlockFeatureLabel(block.id) || block.name;
         onUpgradeNeeded?.(`${label} requires Premium. Upgrade to use this block.`);
@@ -96,7 +104,7 @@ export default function BlockPalette({
       onAddRecent?.(block);
       handleDragStart(e, block);
     },
-    [handleDragStart, onAddRecent, tier, onUpgradeNeeded]
+    [handleDragStart, isLocked, onAddRecent, onUpgradeNeeded]
   );
 
   const onUseTemplate = useCallback(
@@ -198,17 +206,38 @@ export default function BlockPalette({
               <>
                 <optgroup label="Events">
                   {blocksForMenus.events.map((b) => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
+                    <option
+                      key={b.id}
+                      value={b.id}
+                      disabled={isLocked(b.id)}
+                    >
+                      {b.name}
+                      {isLocked(b.id) ? ' (Locked)' : ''}
+                    </option>
                   ))}
                 </optgroup>
                 <optgroup label="Actions">
                   {blocksForMenus.actions.map((b) => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
+                    <option
+                      key={b.id}
+                      value={b.id}
+                      disabled={isLocked(b.id)}
+                    >
+                      {b.name}
+                      {isLocked(b.id) ? ' (Locked)' : ''}
+                    </option>
                   ))}
                 </optgroup>
                 <optgroup label="Custom">
                   {blocksForMenus.custom_options.map((b) => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
+                    <option
+                      key={b.id}
+                      value={b.id}
+                      disabled={isLocked(b.id)}
+                    >
+                      {b.name}
+                      {isLocked(b.id) ? ' (Locked)' : ''}
+                    </option>
                   ))}
                 </optgroup>
               </>
@@ -225,7 +254,14 @@ export default function BlockPalette({
           >
             <option value="">Recipes...</option>
             {TEMPLATES.map((tpl) => (
-              <option key={tpl.id} value={tpl.id}>{tpl.name}</option>
+              <option
+                key={tpl.id}
+                value={tpl.id}
+                disabled={isTemplateLockedForUser ? isTemplateLockedForUser(tpl, tier) : false}
+              >
+                {tpl.name}
+                {(isTemplateLockedForUser ? isTemplateLockedForUser(tpl, tier) : false) ? ' (Locked)' : ''}
+              </option>
             ))}
           </select>
         </div>
@@ -261,7 +297,7 @@ export default function BlockPalette({
                   onDragStart={onDragStart}
                   isFavorite
                   onToggleFavorite={onToggleFavorite}
-                  locked={isBlockLocked(block.id, tier)}
+                  locked={isLocked(block.id)}
                 />
               ))}
             </div>
@@ -276,7 +312,7 @@ export default function BlockPalette({
                   onDragStart={onDragStart}
                   isFavorite={favorites.includes(block.id)}
                   onToggleFavorite={onToggleFavorite}
-                  locked={isBlockLocked(block.id, tier)}
+                  locked={isLocked(block.id)}
                 />
               ))}
             </div>
@@ -340,7 +376,7 @@ export default function BlockPalette({
             onDragStart={onDragStart}
             isFavorite={favorites.includes(block.id)}
             onToggleFavorite={onToggleFavorite}
-            locked={isBlockLocked(block.id, tier)}
+            locked={isLocked(block.id)}
           />
         ))}
       </div>
@@ -360,7 +396,7 @@ export default function BlockPalette({
             onDragStart={onDragStart}
             isFavorite={favorites.includes(block.id)}
             onToggleFavorite={onToggleFavorite}
-            locked={isBlockLocked(block.id, tier)}
+            locked={isLocked(block.id)}
           />
         ))}
       </div>
@@ -379,7 +415,7 @@ export default function BlockPalette({
             onDragStart={onDragStart}
             isFavorite={favorites.includes(block.id)}
             onToggleFavorite={onToggleFavorite}
-            locked={isBlockLocked(block.id, tier)}
+            locked={isLocked(block.id)}
           />
         ))}
       </div>

@@ -45,6 +45,13 @@ export const apiService = {
     return response.data;
   },
 
+  async getEntitlements(paperVersion) {
+    const response = await axiosInstance.get('/entitlements', {
+      params: paperVersion ? { paper_version: paperVersion } : undefined,
+    });
+    return response.data;
+  },
+
   downloadPlugin(downloadId) {
     window.open(`${API_URL}/download/${downloadId}`, '_blank');
   },
@@ -58,5 +65,19 @@ export const apiService = {
   async getBuildJobStatus(jobId) {
     const response = await axiosInstance.get(`/build-jobs/${jobId}`);
     return response.data;
+  },
+
+  async exchangeHandoffCode(code) {
+    const landingUrl = import.meta.env.VITE_LANDING_URL || 'http://localhost:3000';
+    const response = await fetch(`${landingUrl}/api/handoff/exchange`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || 'Failed to exchange handoff code');
+    }
+    return response.json();
   },
 };

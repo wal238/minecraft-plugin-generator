@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { createHandoffCodeForCurrentSession } from '@/lib/handoff-client';
 
 interface AuthFormProps {
   mode: 'login' | 'signup';
@@ -24,22 +25,11 @@ export function AuthForm({ mode }: AuthFormProps) {
   const isSignup = mode === 'signup';
   const message = searchParams.get('message');
 
-  const getSessionForHandoff = async () => {
-    let { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      const refreshed = await supabase.auth.refreshSession();
-      session = refreshed.data.session;
-    }
-    return session;
-  };
-
   const redirectToBuilderWithSession = async (targetUrl: string) => {
-    const session = await getSessionForHandoff();
+    const code = await createHandoffCodeForCurrentSession();
     const url = new URL(targetUrl);
-    if (session?.access_token && session?.refresh_token) {
-      url.searchParams.set('access_token', session.access_token);
-      url.searchParams.set('refresh_token', session.refresh_token);
-      url.searchParams.set('handoff', '1');
+    if (code) {
+      url.searchParams.set('handoff_code', code);
     }
     window.location.href = url.toString();
   };

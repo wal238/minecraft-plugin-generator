@@ -37,3 +37,27 @@ class WorldsResponse(BaseModel):
     """Response for available world names."""
     status: str
     worlds: List[str]
+
+
+class EntitlementsLimits(BaseModel):
+    """Tier limits returned by entitlement endpoint."""
+
+    max_events: int
+    max_actions: int
+    builds_per_period: int
+    max_projects: int
+    watermark: bool
+
+
+class EntitlementsResponse(BaseModel):
+    """Response for resolved tier entitlements."""
+
+    status: str
+    tier: str
+    subscription_status: str | None
+    cancel_at_period_end: bool
+    current_period_end: str | None
+    limits: EntitlementsLimits
+    allowed_block_ids: List[str]
+    locked_block_ids: List[str]
+    lock_reasons: Dict[str, str]

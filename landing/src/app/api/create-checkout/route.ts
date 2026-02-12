@@ -3,6 +3,7 @@ import { stripe } from '@/lib/stripe/client';
 import { VALID_PRICE_IDS } from '@/lib/stripe/plans';
 import { validateOrigin } from '@/lib/csrf';
 import { acquireIdempotencyLock, cacheIdempotencyResponse } from '@/lib/idempotency';
+import { getDefaultBuilderUrl, isAllowedReturnTo } from '@/lib/redirects';
 
 export async function POST(req: Request) {
   // 0. CSRF: Validate origin + Sec-Fetch-Site
@@ -28,10 +29,14 @@ export async function POST(req: Request) {
   }
 
   // 3. Read priceId from body, validate against server-side allowlist
-  const { priceId } = await req.json();
+  const { priceId, returnTo } = await req.json();
   if (!VALID_PRICE_IDS.has(priceId)) {
     return Response.json({ error: 'Invalid price' }, { status: 400 });
   }
+
+  const safeReturnTo = typeof returnTo === 'string' && isAllowedReturnTo(returnTo)
+    ? returnTo
+    : getDefaultBuilderUrl();
 
   // 4. Get or create Stripe customer (userId from session, NOT from client)
   const { data: profile } = await supabase
@@ -58,7 +63,7 @@ export async function POST(req: Request) {
     customer: customerId,
     line_items: [{ price: priceId, quantity: 1 }],
     mode: 'subscription',
-    success_url: `${siteUrl}/account?checkout=success`,
+    success_url: `${siteUrl}/checkout/success?return_to=${encodeURIComponent(safeReturnTo)}`,
     cancel_url: `${siteUrl}/#pricing`,
     metadata: { userId: user.id },
   });

@@ -7,16 +7,10 @@ import type { Profile, SubscriptionTier } from '@/types';
 
 export function useSubscription(userId: string | undefined) {
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loadedUserId, setLoadedUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!userId) {
-      setProfile(null);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
+    if (!userId) return;
     const supabase = createClient();
     supabase
       .from('profiles')
@@ -27,14 +21,16 @@ export function useSubscription(userId: string | undefined) {
         if (!error && data) {
           setProfile(data as Profile);
         }
-        setLoading(false);
+        setLoadedUserId(userId);
       });
   }, [userId]);
 
-  const tier = (profile?.subscription_tier ?? 'free') as SubscriptionTier;
+  const effectiveProfile = userId ? profile : null;
+  const tier = (effectiveProfile?.subscription_tier ?? 'free') as SubscriptionTier;
   const limits = PLANS[tier].limits;
-  const buildsUsed = profile?.builds_used_this_period ?? 0;
+  const buildsUsed = effectiveProfile?.builds_used_this_period ?? 0;
   const buildsLimit = limits.buildsPerPeriod;
+  const effectiveLoading = userId ? loadedUserId !== userId : false;
 
-  return { profile, loading, tier, limits, buildsUsed, buildsLimit };
+  return { profile: effectiveProfile, loading: effectiveLoading, tier, limits, buildsUsed, buildsLimit };
 }
