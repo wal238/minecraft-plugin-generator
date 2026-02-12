@@ -12,5 +12,40 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: mcplugin-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "8000"
+      DEBUG: "false"
+      ENVIRONMENT: "development"
+      DATABASE_URL: "postgresql://mcplugin:mcplugin@postgres:5432/mcplugin"
+      REQUIRE_AUTH: "false"
+      FRONTEND_URLS: "http://localhost:5173,http://localhost:3000"
+      SUPABASE_URL: "${SUPABASE_URL:-}"
+      SUPABASE_SERVICE_ROLE_KEY: "${SUPABASE_SERVICE_ROLE_KEY:-}"
+      MAX_BUILD_TIME: "120"
+      MAX_CONCURRENT_BUILDS: "3"
+      MAVEN_PATH: "mvn"
+      TEMP_DIR: "/tmp"
+      DOWNLOADS_DIR: "/app/downloads"
+    volumes:
+      - downloads:/app/downloads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
 volumes:
   pgdata:
+  downloads:
