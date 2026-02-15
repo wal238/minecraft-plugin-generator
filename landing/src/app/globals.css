@@ -232,6 +232,131 @@
     margin-bottom: 3rem;
   }
 
+  /* ---- PRICING GRID ---- */
+
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    align-items: stretch;
+  }
+
+  .pricing-card-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 0.5rem 0;
+    height: 100%;
+  }
+
+  .pricing-tier-name {
+    font-family: var(--font-pixel);
+    font-size: 0.85rem;
+    text-align: center;
+  }
+
+  .pricing-price {
+    font-family: var(--font-pixel);
+    font-size: 2.25rem;
+    color: var(--text-primary);
+  }
+
+  .pricing-suffix {
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-left: 0.25rem;
+  }
+
+  .pricing-savings-badge {
+    font-family: var(--font-pixel);
+    font-size: 0.5rem;
+    background: var(--mc-green);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    display: inline-block;
+  }
+
+  .pricing-features {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .pricing-feature-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+  }
+
+  .pricing-feature-icon {
+    font-family: var(--font-pixel);
+    font-size: 0.6rem;
+    flex-shrink: 0;
+    width: 1rem;
+    text-align: center;
+  }
+
+  .pricing-btn {
+    width: 100%;
+  }
+
+  @media (max-width: 768px) {
+    .pricing-grid {
+      gap: 0.75rem;
+    }
+
+    .pricing-grid .mc-card {
+      padding: 0.75rem;
+    }
+
+    .pricing-card-inner {
+      gap: 0.75rem;
+      padding: 0.25rem 0;
+    }
+
+    .pricing-tier-name {
+      font-size: 0.5rem;
+    }
+
+    .pricing-price {
+      font-size: 1rem;
+    }
+
+    .pricing-suffix {
+      font-size: 0.55rem;
+    }
+
+    .pricing-savings-badge {
+      font-size: 0.35rem;
+      padding: 0.2rem 0.4rem;
+    }
+
+    .pricing-features {
+      gap: 0.35rem;
+    }
+
+    .pricing-feature-item {
+      font-size: 0.6rem;
+      gap: 0.3rem;
+    }
+
+    .pricing-feature-icon {
+      font-size: 0.4rem;
+      width: auto;
+    }
+
+    .pricing-btn {
+      font-size: 0.45rem;
+      padding: 0.5rem 0.25rem;
+    }
+  }
+
   /* ---- PRICING CARD HIGHLIGHT ---- */
 
   .pricing-card-highlighted {

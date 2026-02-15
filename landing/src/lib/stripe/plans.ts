@@ -1,5 +1,9 @@
 import type { Plan, SubscriptionTier } from '@/types';
 
+function envPriceIds(...keys: string[]): string[] {
+  return keys.map((k) => process.env[k]).filter((v): v is string => Boolean(v));
+}
+
 export const PLANS: Record<SubscriptionTier, Plan> = {
   free: {
     name: 'Freemium',
@@ -11,13 +15,13 @@ export const PLANS: Record<SubscriptionTier, Plan> = {
     name: 'Premium',
     limits: { plugins: -1, buildsPerPeriod: 5, maxEvents: 20, maxActions: 50,
               watermark: false, apiAccess: false, teamMembers: 0 },
-    stripePriceIds: ['price_1SziI5GMuUp3wEans8AEvC3S', 'price_1SziIcGMuUp3wEaneZqtsRHs'],
+    stripePriceIds: envPriceIds('STRIPE_PRICE_PREMIUM_MONTHLY', 'STRIPE_PRICE_PREMIUM_YEARLY'),
   },
   pro: {
     name: 'Pro',
     limits: { plugins: -1, buildsPerPeriod: 20, maxEvents: -1, maxActions: -1,
               watermark: false, apiAccess: true, teamMembers: 5 },
-    stripePriceIds: ['price_1SziHmGMuUp3wEanuA1XIRKT', 'price_1SziHmGMuUp3wEanTwRZjPq1'],
+    stripePriceIds: envPriceIds('STRIPE_PRICE_PRO_MONTHLY', 'STRIPE_PRICE_PRO_YEARLY'),
   },
 };
 

@@ -163,81 +163,33 @@ export function PricingSection() {
       <PricingToggle isYearly={isYearly} onToggle={() => setIsYearly((prev) => !prev)} />
 
       <AnimatedSection stagger>
-        <div
-          className="grid grid-cols-3"
-          style={{
-            gap: '1.5rem',
-            alignItems: 'stretch',
-          }}
-        >
+        <div className="pricing-grid">
           {plans.map((plan) => {
             const price = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
             const suffix = isYearly ? plan.priceSuffix.yearly : plan.priceSuffix.monthly;
             const showSavings = isYearly && plan.yearlySavings;
 
             return (
-              <MinecraftCard key={plan.tier} highlighted={plan.highlighted} className="flex flex-col">
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '1.5rem',
-                    padding: '0.5rem 0',
-                    flex: 1,
-                  }}
-                >
+              <MinecraftCard key={plan.tier} highlighted={plan.highlighted}>
+                <div className="pricing-card-inner">
                   {/* Tier name */}
-                  <h3
-                    style={{
-                      fontFamily: 'var(--font-pixel)',
-                      fontSize: '0.85rem',
-                      color: plan.headerColor,
-                      textAlign: 'center',
-                    }}
-                  >
+                  <h3 className="pricing-tier-name" style={{ color: plan.headerColor }}>
                     {plan.tier}
                   </h3>
 
                   {/* Price */}
                   <div style={{ textAlign: 'center' }}>
-                    <span
-                      style={{
-                        fontFamily: 'var(--font-pixel)',
-                        fontSize: 'clamp(1.5rem, 4vw, 2.25rem)',
-                        color: 'var(--text-primary)',
-                      }}
-                    >
+                    <span className="pricing-price">
                       {price}
                     </span>
-                    <span
-                      style={{
-                        fontFamily: 'var(--font-body)',
-                        fontSize: '0.9rem',
-                        color: 'var(--text-muted)',
-                        marginLeft: '0.25rem',
-                      }}
-                    >
+                    <span className="pricing-suffix">
                       {suffix}
                     </span>
 
                     {/* Yearly savings badge */}
                     {showSavings && (
-                      <div
-                        style={{
-                          marginTop: '0.5rem',
-                          display: 'inline-block',
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontFamily: 'var(--font-pixel)',
-                            fontSize: '0.5rem',
-                            background: 'var(--mc-green)',
-                            color: 'white',
-                            padding: '0.25rem 0.75rem',
-                            display: 'inline-block',
-                          }}
-                        >
+                      <div style={{ marginTop: '0.5rem' }}>
+                        <span className="pricing-savings-badge">
                           {plan.yearlySavings}
                         </span>
                       </div>
@@ -254,40 +206,23 @@ export function PricingSection() {
                   />
 
                   {/* Features */}
-                  <ul
-                    style={{
-                      listStyle: 'none',
-                      padding: 0,
-                      margin: 0,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.75rem',
-                    }}
-                  >
+                  <ul className="pricing-features">
                     {plan.features.map((feature) => (
                       <li
                         key={feature.label}
+                        className="pricing-feature-item"
                         style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.75rem',
-                          fontFamily: 'var(--font-body)',
-                          fontSize: '0.9rem',
                           color: feature.included
                             ? 'var(--text-secondary)'
                             : 'var(--text-muted)',
                         }}
                       >
                         <span
+                          className="pricing-feature-icon"
                           style={{
-                            fontFamily: 'var(--font-pixel)',
-                            fontSize: '0.6rem',
                             color: feature.included
                               ? 'var(--mc-green)'
                               : 'var(--text-muted)',
-                            flexShrink: 0,
-                            width: '1rem',
-                            textAlign: 'center',
                           }}
                         >
                           {feature.included ? '\u2713' : '\u2717'}
@@ -303,14 +238,14 @@ export function PricingSection() {
                       <MinecraftButton
                         variant={plan.buttonVariant}
                         href="/signup"
-                        className="w-full"
+                        className="pricing-btn"
                       >
                         {plan.buttonLabel}
                       </MinecraftButton>
                     ) : (
                       <MinecraftButton
                         variant={plan.buttonVariant}
-                        className="w-full"
+                        className="pricing-btn"
                         loading={loadingTier === plan.tier}
                         onClick={() => handlePaidCheckout(plan.tier)}
                       >
